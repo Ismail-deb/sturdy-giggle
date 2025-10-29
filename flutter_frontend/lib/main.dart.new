@@ -1,0 +1,37 @@
+import 'package:flutter/material.dart';
+import 'screens/dashboard_screen.dart';
+import 'services/api_service.dart';
+
+void main() {
+  // Initialize API service
+  ApiService.initialize();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Greenhouse Monitoring System',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.dark(
+          primary: Colors.green[500]!,
+          secondary: Colors.orange,
+          surface: const Color(0xFF1A1A1A),
+          background: const Color(0xFF121212),
+        ),
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        cardTheme: CardTheme(
+          color: const Color(0xFF1E1E1E),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+      home: const DashboardScreen(),
+    );
+  }
+}
