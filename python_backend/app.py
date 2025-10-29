@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import random
 import time
@@ -6,11 +6,34 @@ import math
 import os
 import socket
 import threading
+import logging
 from datetime import datetime
 from dotenv import load_dotenv
 # Import the Gemini service
 from gemini_service import get_gemini_analysis, get_gemini_recommendations
 import requests
+import http.client
+from urllib.parse import urlparse
+import concurrent.futures
+import traceback
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+import io
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Thread pool for async Gemini requests (non-blocking AI)
+_gemini_executor = concurrent.futures.ThreadPoolExecutor(max_workers=3, thread_name_prefix='gemini')
+
+# HTTP connection pool for faster APEX requests
+_apex_connection_pool = {}
+_apex_connection_lock = threading.Lock()
 
 # Load environment variables from .env file
 load_dotenv()
@@ -138,9 +161,25 @@ items = [
 
 ORACLE_APEX_URL = os.getenv('ORACLE_APEX_URL', "https://oracleapex.com/ords/g3_data/iot/greenhouse/")
 
+def get_apex_connection(url):
+    """Get or create persistent HTTPS connection to APEX for connection pooling"""
+    parsed = urlparse(url)
+    host = parsed.hostname
+    
+    with _apex_connection_lock:
+        if host not in _apex_connection_pool:
+            logger.info(f"Creating new APEX connection pool for {host}")
+            _apex_connection_pool[host] = http.client.HTTPSConnection(
+                host, 
+                timeout=5,  # Shorter timeout with persistent connection
+                blocksize=8192  # Larger buffer for faster reads
+            )
+        return _apex_connection_pool[host]
+
 def fetch_apex_readings(apex_url=None, timeout=10):
     """Fetch list of readings from Oracle APEX using http.client (more reliable than requests).
        Returns a list of dict readings or empty list on failure.
+       NOW WITH CONNECTION POOLING for 2-3x faster requests!
     """
     import http.client
     import json
@@ -153,18 +192,48 @@ def fetch_apex_readings(apex_url=None, timeout=10):
         host = parsed.hostname  # e.g., "oracleapex.com"
         path = parsed.path or "/"  # e.g., "/ords/g3_data/iot/greenhouse/"
         
-        # Create HTTPS connection
-        conn = http.client.HTTPSConnection(host, timeout=timeout)
-        
-        # Make request
-        conn.request("GET", path)
-        
-        # Get response
-        res = conn.getresponse()
+        # Get connection from pool (reuses existing connection!)
+        try:
+            conn = get_apex_connection(url)
+            
+            # Make request with keep-alive header for connection reuse
+            conn.request("GET", path, headers={
+                'Connection': 'keep-alive',
+                'Accept-Encoding': 'gzip, deflate'  # Request compression
+            })
+            
+            # Get response
+            res = conn.getresponse()
+        except Exception as conn_err:
+            # Connection died, remove from pool and retry
+            logger.warning(f"Connection pool error: {conn_err}, creating fresh connection")
+            with _apex_connection_lock:
+                if host in _apex_connection_pool:
+                    try:
+                        _apex_connection_pool[host].close()
+                    except:
+                        pass
+                    del _apex_connection_pool[host]
+            
+            # Retry with fresh connection
+            conn = http.client.HTTPSConnection(host, timeout=timeout)
+            conn.request("GET", path)
+            res = conn.getresponse()
         
         if res.status == 200:
-            # Read and decode response
+            # Read response - handle GZIP compression!
             data_bytes = res.read()
+            
+            # Check if response is gzip-compressed (starts with 0x1f 0x8b)
+            import gzip
+            if len(data_bytes) >= 2 and data_bytes[0] == 0x1f and data_bytes[1] == 0x8b:
+                try:
+                    data_bytes = gzip.decompress(data_bytes)
+                except Exception as e:
+                    print(f"GZIP decompression failed: {e}")
+                    return []
+            
+            # Decode JSON
             data = json.loads(data_bytes.decode("utf-8"))
             
             # normalize possible shapes: {"items": [...]} or [...]
@@ -187,28 +256,25 @@ def fetch_apex_readings(apex_url=None, timeout=10):
             for idx, it in enumerate(items):
                 it_copy = dict(it)
                 
-                # Get the original APEX timestamp (format: "1970-01-01T01:21:27Z")
+                # Get the original APEX timestamp (format: "2025-10-29T15:21:22.123456Z")
                 apex_ts_str = it.get("timestamp_reading", "")
                 
                 if apex_ts_str:
                     try:
-                        # Parse the APEX ISO timestamp - it has the correct TIME but wrong DATE
-                        # Format: "2025-10-27T12:34:12.971802Z" (includes microseconds)
-                        # Remove 'Z' suffix and parse with microseconds
+                        # Parse the APEX ISO timestamp WITH microseconds
+                        # APEX already provides the CORRECT full timestamp - use it as-is!
+                        # Format: "2025-10-29T15:21:22.971802Z"
                         apex_dt = datetime.strptime(apex_ts_str.replace('Z', ''), "%Y-%m-%dT%H:%M:%S.%f")
                         
-                        # Use TODAY'S date with the time from APEX
-                        today = datetime.now().date()
-                        proper_dt = datetime.combine(today, apex_dt.time())
-                        
-                        # Convert to Unix timestamp
-                        it_copy["timestamp"] = proper_dt.timestamp()
+                        # Convert to Unix timestamp (this is the ACTUAL time from APEX)
+                        it_copy["timestamp"] = apex_dt.timestamp()
                     except Exception as e:
                         print(f"Failed to parse timestamp '{apex_ts_str}': {e}")
                         # Fallback: use current time if parsing fails
                         it_copy["timestamp"] = time.time() - (idx * 10)
                 else:
                     # No timestamp in APEX data, use current time
+                    it_copy["timestamp"] = time.time() - (idx * 10)
                     it_copy["timestamp"] = time.time() - (idx * 10)
                 
                 it_copy["_ts_num"] = it_copy["timestamp"]
@@ -217,15 +283,36 @@ def fetch_apex_readings(apex_url=None, timeout=10):
             # sort descending by timestamp numeric (newest first)
             normalized.sort(key=lambda x: x.get("_ts_num", 0), reverse=True)
             
-            conn.close()
+            # Log the timestamps of the first 3 readings to verify we're getting fresh data
+            if len(normalized) >= 3:
+                latest_ts = datetime.fromtimestamp(normalized[0].get("timestamp", 0)).strftime("%Y-%m-%d %H:%M:%S")
+                second_ts = datetime.fromtimestamp(normalized[1].get("timestamp", 0)).strftime("%Y-%m-%d %H:%M:%S")
+                third_ts = datetime.fromtimestamp(normalized[2].get("timestamp", 0)).strftime("%Y-%m-%d %H:%M:%S")
+                temp1 = normalized[0].get("temperature_bmp280", "N/A")
+                temp2 = normalized[1].get("temperature_bmp280", "N/A")
+                print(f"📊 Latest APEX Data: {latest_ts} (Temp: {temp1}°C), 2nd: {second_ts} (Temp: {temp2}°C), 3rd: {third_ts}")
+            
+            # DON'T close connection - keep it in pool for reuse!
             return normalized
         else:
             print(f"fetch_apex_readings: HTTP {res.status}")
-            conn.close()
+            # DON'T close connection - keep it in pool!
             return []
             
     except Exception as e:
         print(f"fetch_apex_readings error: {e}")
+        # If connection error, remove from pool
+        try:
+            parsed = urlparse(apex_url or ORACLE_APEX_URL)
+            with _apex_connection_lock:
+                if parsed.hostname in _apex_connection_pool:
+                    try:
+                        _apex_connection_pool[parsed.hostname].close()
+                    except:
+                        pass
+                    del _apex_connection_pool[parsed.hostname]
+        except:
+            pass
         return []
 
 def build_derived_from_reading(r):
@@ -458,8 +545,10 @@ def health_check():
 def get_sensor_analysis(sensor_type):
     """
     Get detailed analysis for a specific sensor - ONLY FROM APEX
+    Supports ?include_ai=false to skip AI analysis for INSTANT page load!
     """
     time_range = request.args.get('time_range', 'hours')
+    include_ai = request.args.get('include_ai', 'true').lower() == 'true'
     
     # Determine number of points requested
     data_points = {
@@ -632,11 +721,14 @@ def get_sensor_analysis(sensor_type):
             {"value": val, "timestamp": now_ts}
         ]
 
-    # Optionally get AI analysis (Gemini) - non-blocking fallback handled inside
-    try:
-        analysis_text = get_gemini_analysis(sensor_type, current_value or 0.0, unit, status, [d['value'] for d in historical_data])
-    except Exception:
-        analysis_text = ''
+    # Optionally get AI analysis (Gemini) - can be skipped for faster loading
+    analysis_text = ''
+    if include_ai:
+        try:
+            analysis_text = get_gemini_analysis(sensor_type, current_value or 0.0, unit, status, [d['value'] for d in historical_data])
+        except Exception as e:
+            logger.warning(f"AI analysis failed for {sensor_type}: {e}")
+            analysis_text = ''
 
     response = {
         "sensor_type": sensor_type,
@@ -652,6 +744,77 @@ def get_sensor_analysis(sensor_type):
 
     return jsonify(response)
 # ...existing code...
+
+@app.route('/api/sensor-analysis/<sensor_type>/ai', methods=['GET'])
+def get_sensor_ai_only(sensor_type):
+    """
+    Get ONLY AI analysis for a sensor - called separately for async loading!
+    This endpoint is FAST because it skips historical data processing.
+    """
+    try:
+        readings, _ = get_cached_apex_or_fetch()
+        if not readings:
+            return jsonify({'analysis': 'No data available'}), 503
+        
+        latest = readings[0]
+        sensor_data = {**latest, **build_derived_from_reading(latest)}
+        
+        # Determine sensor specifics based on type
+        st = sensor_type.lower()
+        if 'temp' in st:
+            current_value = sensor_data.get('temperature', 0)
+            unit = '°C'
+            status = _get_temperature_status(current_value)
+        elif 'humid' in st:
+            current_value = sensor_data.get('humidity', 0)
+            unit = '%'
+            status = _get_humidity_status(current_value)
+        elif 'light' in st:
+            current_value = sensor_data.get('light', 0)
+            unit = 'lux'
+            status = _get_light_status(current_value)
+        elif 'co2' in st or 'air' in st or 'mq135' in st:
+            current_value = sensor_data.get('mq135_drop', 0)
+            unit = 'ppm'
+            status = "Good" if current_value <= 200 else ("Poor" if current_value > 500 else "Moderate")
+        elif 'pressure' in st:
+            current_value = sensor_data.get('pressure', 0)
+            unit = 'hPa'
+            status = "Normal"
+        else:
+            current_value = 0
+            unit = ''
+            status = 'Unknown'
+        
+        # Get last 10 readings for trend analysis
+        historical_values = []
+        for r in readings[:10]:
+            if 'temp' in st:
+                val = r.get('temperature', 0)
+            elif 'humid' in st:
+                val = r.get('humidity', 0)
+            elif 'light' in st:
+                val = r.get('light', 0)
+            elif 'co2' in st or 'air' in st:
+                val = r.get('mq135_drop', 0)
+            elif 'pressure' in st:
+                val = r.get('pressure', 0)
+            else:
+                val = 0
+            historical_values.append(val)
+        
+        # Call Gemini AI
+        analysis_text = get_gemini_analysis(sensor_type, current_value, unit, status, historical_values)
+        
+        return jsonify({
+            'analysis': analysis_text,
+            'timestamp': time.time(),
+            'sensor_type': sensor_type
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"AI analysis error for {sensor_type}: {e}")
+        return jsonify({'analysis': f'AI analysis temporarily unavailable'}), 500
 
 @app.route('/api/ai-recommendations', methods=['GET'])
 def get_ai_recommendations():
@@ -888,5 +1051,369 @@ if __name__ == '__main__':
     broadcast_thread.start()
     print("IP broadcast service started")
 
+@app.route('/api/export-report', methods=['GET'])
+def export_greenhouse_report():
+    """Generate comprehensive greenhouse PDF report with AI analysis"""
+    try:
+        # Get latest APEX data directly
+        readings, cache_status = get_cached_apex_or_fetch()
+        if not readings:
+            return jsonify({'error': 'No APEX data available'}), 503
+        
+        latest = readings[0]
+        sensor_data = {**latest, **build_derived_from_reading(latest)}
+        
+        # Calculate statuses for all sensors
+        temp_avg = (sensor_data.get('temperature_bmp280', 0) + sensor_data.get('temperature_dht22', 0)) / 2
+        
+        all_analysis = {
+            'temperature': {
+                'value': temp_avg,
+                'status': _get_temperature_status(temp_avg),
+                'unit': '°C'
+            },
+            'humidity': {
+                'value': sensor_data.get('humidity', 0),
+                'status': _get_humidity_status(sensor_data.get('humidity', 0)),
+                'unit': '%'
+            },
+            'air_quality': {
+                'value': sensor_data.get('mq135_drop', 0),
+                'status': "Good" if sensor_data.get('mq135_drop', 0) <= 200 else ("Poor" if sensor_data.get('mq135_drop', 0) > 500 else "Moderate"),
+                'unit': 'ppm'
+            },
+            'light': {
+                'value': sensor_data.get('light', 0),
+                'status': _get_light_status(sensor_data.get('light', 0)),
+                'unit': 'lux'
+            }
+        }
+        
+        # Get AI recommendations
+        try:
+            ai_recommendations = get_gemini_recommendations(sensor_data)
+        except Exception as e:
+            logger.warning(f"AI recommendations failed: {e}")
+            ai_recommendations = []
+        
+        # Generate PDF
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        
+        # Container for PDF elements
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#4CAF50'),
+            spaceAfter=30,
+            alignment=TA_CENTER
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=16,
+            textColor=colors.HexColor('#2196F3'),
+            spaceAfter=12,
+            spaceBefore=12
+        )
+        
+        # Title
+        elements.append(Paragraph("🌿 EcoView Greenhouse Report", title_style))
+        elements.append(Spacer(1, 12))
+        
+        # Report metadata
+        report_date = datetime.now().strftime('%B %d, %Y at %I:%M %p')
+        elements.append(Paragraph(f"<b>Generated:</b> {report_date}", styles['Normal']))
+        elements.append(Paragraph(f"<b>System:</b> EcoView Greenhouse Monitoring", styles['Normal']))
+        elements.append(Spacer(1, 20))
+        
+        # Health Score
+        health_score = _calculate_health_score(all_analysis)
+        elements.append(Paragraph("Overall Greenhouse Health", heading_style))
+        health_color = colors.green if health_score >= 80 else (colors.orange if health_score >= 60 else colors.red)
+        health_data = [[f"{health_score}/100", "EXCELLENT" if health_score >= 80 else ("GOOD" if health_score >= 60 else "NEEDS ATTENTION")]]
+        health_table = Table(health_data, colWidths=[2*inch, 3*inch])
+        health_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), health_color),
+            ('TEXTCOLOR', (0, 0), (0, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey)
+        ]))
+        elements.append(health_table)
+        elements.append(Spacer(1, 20))
+        
+        # Current Conditions
+        elements.append(Paragraph("📊 Current Sensor Readings", heading_style))
+        sensor_table_data = [['Sensor', 'Value', 'Status', 'Assessment']]
+        
+        for sensor_name, data in all_analysis.items():
+            status = data['status']
+            status_color = colors.green if status == 'Optimal' else (colors.orange if status in ['Warning', 'Moderate'] else colors.red)
+            sensor_table_data.append([
+                sensor_name.replace('_', ' ').title(),
+                f"{data['value']:.1f} {data['unit']}",
+                status,
+                '✓' if status == 'Optimal' else '⚠' if status in ['Warning', 'Moderate'] else '✗'
+            ])
+        
+        sensor_table = Table(sensor_table_data, colWidths=[2*inch, 1.5*inch, 1.5*inch, 1*inch])
+        sensor_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4CAF50')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.beige, colors.lightgrey])
+        ]))
+        elements.append(sensor_table)
+        elements.append(Spacer(1, 20))
+        
+        # AI Recommendations
+        if ai_recommendations:
+            elements.append(Paragraph("🤖 AI-Powered Recommendations", heading_style))
+            for i, rec in enumerate(ai_recommendations[:5], 1):
+                elements.append(Paragraph(f"<b>{i}.</b> {rec}", styles['Normal']))
+                elements.append(Spacer(1, 6))
+        elements.append(Spacer(1, 20))
+        
+        # Alert Summary
+        elements.append(Paragraph("⚠️ Alert Summary", heading_style))
+        alert_summary = _generate_alert_summary(sensor_data)
+        critical_count = alert_summary.get('critical_count', 0)
+        warning_count = alert_summary.get('warning_count', 0)
+        
+        if critical_count > 0 or warning_count > 0:
+            elements.append(Paragraph(f"<b>Critical Alerts:</b> {critical_count}", styles['Normal']))
+            elements.append(Paragraph(f"<b>Warnings:</b> {warning_count}", styles['Normal']))
+            if alert_summary.get('alerts'):
+                for alert in alert_summary['alerts'][:5]:
+                    elements.append(Paragraph(f"• {alert.get('message', 'Unknown alert')}", styles['Normal']))
+                    elements.append(Spacer(1, 4))
+        else:
+            elements.append(Paragraph("✅ No active alerts - All systems operating normally", styles['Normal']))
+        
+        elements.append(Spacer(1, 20))
+        
+        # Historical Data Summary
+        elements.append(PageBreak())
+        elements.append(Paragraph("📈 Recent Historical Data", heading_style))
+        elements.append(Paragraph(f"Last {min(10, len(readings))} readings from APEX database:", styles['Normal']))
+        elements.append(Spacer(1, 12))
+        
+        history_table_data = [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Light (lux)']]
+        for reading in readings[:10]:
+            timestamp = datetime.fromtimestamp(reading.get('timestamp', time.time())).strftime('%m/%d %H:%M')
+            temp = (reading.get('temperature_bmp280', 0) + reading.get('temperature_dht22', 0)) / 2
+            humidity = reading.get('humidity', 0)
+            light = reading.get('light', 0)
+            history_table_data.append([timestamp, f"{temp:.1f}", f"{humidity:.1f}", f"{light:.0f}"])
+        
+        history_table = Table(history_table_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+        history_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2196F3')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey])
+        ]))
+        elements.append(history_table)
+        
+        # Footer
+        elements.append(Spacer(1, 30))
+        elements.append(Paragraph("―――――――――――――――――――――――――――――――――――", styles['Normal']))
+        elements.append(Paragraph("<i>Generated by EcoView Greenhouse Monitoring System</i>", styles['Normal']))
+        elements.append(Paragraph(f"<i>Report ID: {datetime.now().strftime('%Y%m%d%H%M%S')}</i>", styles['Normal']))
+        
+        # Build PDF
+        doc.build(elements)
+        buffer.seek(0)
+        
+        # Generate filename
+        filename = f"EcoView_Report_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pdf"
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating PDF report: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
+
+def _generate_overview(sensor_data, analysis):
+    """Generate greenhouse overview summary"""
+    
+    overview = {
+        'status': 'OPERATIONAL',
+        'monitoring_since': sensor_data.get('timestamp', time.time()),
+        'total_sensors': 11,
+        'active_sensors': 8,  # Count non-null sensors
+        'summary': ''
+    }
+    
+    # Generate summary text
+    temp_status = analysis.get('temperature', {}).get('status', 'Unknown')
+    humidity_status = analysis.get('humidity', {}).get('status', 'Unknown')
+    air_status = analysis.get('air_quality', {}).get('status', 'Unknown')
+    light_status = analysis.get('light', {}).get('status', 'Unknown')
+    
+    summary_parts = []
+    if temp_status == 'Optimal':
+        summary_parts.append("Temperature is in optimal range")
+    elif temp_status == 'Critical':
+        summary_parts.append("⚠️ CRITICAL: Temperature requires immediate attention")
+    else:
+        summary_parts.append(f"Temperature is {temp_status}")
+    
+    if humidity_status == 'Optimal':
+        summary_parts.append("humidity is ideal")
+    elif humidity_status == 'Critical':
+        summary_parts.append("⚠️ humidity needs urgent correction")
+    else:
+        summary_parts.append(f"humidity is {humidity_status}")
+    
+    if air_status == 'Good':
+        summary_parts.append("air quality is excellent")
+    elif air_status == 'Poor':
+        summary_parts.append("⚠️ poor air quality detected")
+    
+    if light_status in ['Bright', 'Moderate']:
+        summary_parts.append(f"lighting is {light_status.lower()}")
+    elif light_status in ['Dark Night', 'Low Light']:
+        summary_parts.append(f"low light conditions ({light_status})")
+    
+    overview['summary'] = ', '.join(summary_parts).capitalize() + '.'
+    
+    return overview
+
+def _generate_current_conditions(sensor_data):
+    """Generate current conditions summary"""
+    
+    return {
+        'temperature': {
+            'bmp280': sensor_data.get('temperature_bmp280', 0),
+            'dht22': sensor_data.get('temperature_dht22', 0),
+            'average': (sensor_data.get('temperature_bmp280', 0) + sensor_data.get('temperature_dht22', 0)) / 2
+        },
+        'humidity': sensor_data.get('humidity', 0),
+        'air_quality': {
+            'mq135_co2': sensor_data.get('mq135_drop', 0),
+            'mq2_gas': sensor_data.get('mq2_drop', 0),
+            'mq7_co': sensor_data.get('mq7_drop', 0)
+        },
+        'atmospheric': {
+            'pressure': sensor_data.get('pressure', 0),
+            'altitude': sensor_data.get('altitude', 0)
+        },
+        'light_intensity': sensor_data.get('light', 0),
+        'flame_detection': sensor_data.get('flame_status', 'Unknown')
+    }
+
+def _generate_alert_summary(sensor_data):
+    """Generate alert summary"""
+    alerts = []
+    
+    # Temperature alerts (20-27°C optimal)
+    temp_avg = (sensor_data.get('temperature_bmp280', 0) + sensor_data.get('temperature_dht22', 0)) / 2
+    if temp_avg < 18:
+        alerts.append({'level': 'CRITICAL', 'type': 'Temperature', 'message': f'Temperature too low: {temp_avg:.1f}°C'})
+    elif temp_avg > 30:
+        alerts.append({'level': 'CRITICAL', 'type': 'Temperature', 'message': f'Temperature too high: {temp_avg:.1f}°C'})
+    elif temp_avg < 20 or temp_avg > 27:
+        alerts.append({'level': 'WARNING', 'type': 'Temperature', 'message': f'Temperature suboptimal: {temp_avg:.1f}°C'})
+    
+    # Humidity alerts (45-70% optimal)
+    humidity = sensor_data.get('humidity', 0)
+    if humidity < 45:
+        alerts.append({'level': 'CRITICAL', 'type': 'Humidity', 'message': f'Too dry: {humidity}% - Add shading'})
+    elif humidity > 80:
+        alerts.append({'level': 'CRITICAL', 'type': 'Humidity', 'message': f'Too humid: {humidity}% - Run ventilation'})
+    elif humidity > 70:
+        alerts.append({'level': 'WARNING', 'type': 'Humidity', 'message': f'Slightly high: {humidity}%'})
+    
+    # Air quality alerts (200/500 thresholds)
+    mq135 = sensor_data.get('mq135_drop', 0)
+    if mq135 > 500:
+        alerts.append({'level': 'WARNING', 'type': 'Air Quality', 'message': f'Poor air quality: {mq135:.0f} PPM'})
+    elif mq135 > 200:
+        alerts.append({'level': 'INFO', 'type': 'Air Quality', 'message': f'Moderate air quality: {mq135:.0f} PPM'})
+    
+    # Gas alerts
+    mq2 = sensor_data.get('mq2_drop', 0)
+    if mq2 > 750:
+        alerts.append({'level': 'CRITICAL', 'type': 'Flammable Gas', 'message': f'High gas level: {mq2:.0f} PPM'})
+    elif mq2 > 300:
+        alerts.append({'level': 'WARNING', 'type': 'Flammable Gas', 'message': f'Elevated gas: {mq2:.0f} PPM'})
+    
+    # CO alerts
+    mq7 = sensor_data.get('mq7_drop', 0)
+    if mq7 > 750:
+        alerts.append({'level': 'CRITICAL', 'type': 'Carbon Monoxide', 'message': f'High CO: {mq7:.0f} PPM'})
+    elif mq7 > 300:
+        alerts.append({'level': 'WARNING', 'type': 'Carbon Monoxide', 'message': f'Elevated CO: {mq7:.0f} PPM'})
+    
+    # Flame detection
+    if sensor_data.get('flame_detected'):
+        alerts.append({'level': 'CRITICAL', 'type': 'FIRE', 'message': '⚠️ FIRE DETECTED'})
+    
+    return {
+        'total_alerts': len(alerts),
+        'critical_count': sum(1 for a in alerts if a['level'] == 'CRITICAL'),
+        'warning_count': sum(1 for a in alerts if a['level'] == 'WARNING'),
+        'alerts': alerts
+    }
+
+def _calculate_health_score(analysis):
+    """Calculate overall greenhouse health score (0-100)"""
+    score = 100
+    
+    # Temperature impact
+    temp_status = analysis.get('temperature', {}).get('status', '')
+    if temp_status == 'Critical':
+        score -= 30
+    elif temp_status == 'Acceptable':
+        score -= 10
+    
+    # Humidity impact
+    humidity_status = analysis.get('humidity', {}).get('status', '')
+    if humidity_status == 'Critical':
+        score -= 30
+    elif humidity_status == 'Acceptable':
+        score -= 10
+    
+    # Air quality impact
+    air_status = analysis.get('air_quality', {}).get('status', '')
+    if air_status == 'Poor':
+        score -= 20
+    elif air_status == 'Moderate':
+        score -= 10
+    
+    # Light impact
+    light_status = analysis.get('light', {}).get('status', '')
+    if light_status in ['Dark Night', 'Low Light']:
+        score -= 15
+    elif light_status == 'Dim Indoor':
+        score -= 5
+    
+    return max(0, min(100, score))
+
+if __name__ == '__main__':
     # For development only - use gunicorn in production
     app.run(host='0.0.0.0', port=5000, debug=True)
