@@ -25,6 +25,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
   SensorAnalysis? analysis;
   String aiAnalysis = '';
   String selectedTimeRange = 'hours';
+  String selectedChartType = 'line'; // Default chart type
   
   final List<Map<String, String>> timeRanges = [
     {'value': 'seconds', 'label': 'Last Minute'},
@@ -34,6 +35,12 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     {'value': 'weeks', 'label': 'Last Year (Weekly)'},
     {'value': 'months', 'label': 'Last Year (Monthly)'},
     {'value': 'years', 'label': 'Last 5 Years'},
+  ];
+  
+  final List<Map<String, dynamic>> chartTypes = [
+    {'value': 'line', 'label': 'Line Chart', 'icon': Icons.show_chart_rounded},
+    {'value': 'bar', 'label': 'Bar Chart', 'icon': Icons.bar_chart_rounded},
+    {'value': 'area', 'label': 'Area Chart', 'icon': Icons.area_chart_rounded},
   ];
   
   @override
@@ -144,24 +151,79 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final beigeBackground = isDarkMode 
-        ? theme.scaffoldBackgroundColor // Keep dark theme unchanged
-        : const Color(0xFFF5E6D3); // Warm beige for light theme
+        ? theme.scaffoldBackgroundColor
+        : const Color(0xFFF5E6D3);
     
     return Scaffold(
       backgroundColor: beigeBackground,
       appBar: AppBar(
-        title: Text('${widget.sensorType} Analysis'),
+        title: Text(
+          '${widget.sensorType} Analysis',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadAnalysis,
-          )
+            tooltip: 'Refresh Data',
+          ),
         ],
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: theme.colorScheme.primary,
+                    strokeWidth: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Loading sensor analysis...',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            )
           : errorMessage.isNotEmpty
-              ? Center(child: Text('Error: $errorMessage'))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 64,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error Loading Data',
+                        style: theme.textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                          errorMessage,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        onPressed: _loadAnalysis,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Try Again'),
+                      ),
+                    ],
+                  ),
+                )
               : _buildAnalysisContent(),
     );
   }
@@ -173,50 +235,124 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
     final statusColor = _getStatusColor(analysis!.status);
     
-    // Custom card color for light theme - soft cream that complements beige
     final cardColor = isDarkMode 
-        ? theme.colorScheme.surface // Keep dark theme unchanged
-        : const Color(0xFFFFFAF0); // Soft cream/ivory color
+        ? theme.colorScheme.surface
+        : const Color(0xFFFFFAF0);
     
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       children: [
-        // --- REVAMPED: Current Value Card ---
-        Card(
-          color: cardColor,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
+        // Hero Value Card with gradient and elevation
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                statusColor.withOpacity(0.15),
+                statusColor.withOpacity(0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: statusColor.withOpacity(0.1),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Card(
+            color: cardColor,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: statusColor.withOpacity(0.3),
+                width: 2,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Current Value',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Current Reading',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text(
+                                  '${analysis!.currentValue}',
+                                  style: theme.textTheme.displayLarge?.copyWith(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 48,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  analysis!.unit,
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${analysis!.currentValue}',
-                            style: theme.textTheme.displaySmall?.copyWith(
-                              color: statusColor,
+                            'Status',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor,
+                              borderRadius: BorderRadius.circular(30),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: statusColor.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
                             child: Text(
-                              analysis!.unit,
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                color: theme.textTheme.bodyMedium?.color,
+                              analysis!.getFormattedStatus(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ),
@@ -224,66 +360,140 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
                       ),
                     ],
                   ),
-                ),
-                Column(
-                  children: [
-                     Text(
-                        'Status',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Chip(
-                        label: Text(
-                          analysis!.getFormattedStatus(),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        backgroundColor: statusColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                  ],
-                )
-              ],
+                ],
+              ),
             ),
           ),
         ),
         
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         
-        // --- REVAMPED: Historical Data Card ---
+        // Historical Data Card with modern design
         Card(
           color: cardColor,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.show_chart_rounded,
+                            color: theme.colorScheme.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Historical Trend',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButton<String>(
+                        value: selectedTimeRange,
+                        onChanged: _onTimeRangeChanged,
+                        underline: const SizedBox(),
+                        isDense: true,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        items: timeRanges.map((range) {
+                          return DropdownMenuItem<String>(
+                            value: range['value'],
+                            child: Text(range['label']!),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Chart type selector with icon buttons
+                Row(
+                  children: [
                     Text(
-                      'Historical Data',
-                      style: theme.textTheme.titleLarge,
+                      'Chart Type:',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      ),
                     ),
-                    DropdownButton<String>(
-                      value: selectedTimeRange,
-                      onChanged: _onTimeRangeChanged,
-                      items: timeRanges.map((range) {
-                        return DropdownMenuItem<String>(
-                          value: range['value'],
-                          child: Text(range['label']!),
-                        );
-                      }).toList(),
-                    ),
+                    const SizedBox(width: 12),
+                    ...chartTypes.map((type) {
+                      final isSelected = selectedChartType == type['value'];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          selected: isSelected,
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                type['icon'] as IconData,
+                                size: 16,
+                                color: isSelected 
+                                    ? Colors.white 
+                                    : theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                type['label'] as String,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isSelected 
+                                      ? Colors.white 
+                                      : theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() {
+                                selectedChartType = type['value'] as String;
+                              });
+                            }
+                          },
+                          selectedColor: theme.colorScheme.primary,
+                          checkmarkColor: Colors.white,
+                          backgroundColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                          side: BorderSide(
+                            color: isSelected 
+                                ? theme.colorScheme.primary 
+                                : theme.colorScheme.outline.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ],
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
-                  height: 250,
+                  height: 280,
                   child: _buildChart(),
                 ),
               ],
@@ -291,93 +501,184 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
           ),
         ),
         
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         
-        // --- REVAMPED: AI Analysis Card ---
-        Card(
-          color: cardColor,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.auto_awesome, color: Colors.amber[600]),
-                    const SizedBox(width: 12),
-                    Text(
-                      'AI Analysis',
-                      style: theme.textTheme.titleLarge,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (isLoadingAI)
-                  Center(
-                    child: Column(
-                      children: [
-                        CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.amber[600]!),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Generating AI insights...',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.textTheme.bodyMedium?.color,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        // AI Analysis Card with premium styling
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.amber.withOpacity(0.08),
+                Colors.orange.withOpacity(0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Card(
+            color: cardColor,
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: Colors.amber.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Text(
-                        aiAnalysis,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          height: 1.5,
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.psychology_rounded,
+                          color: Colors.amber[700],
+                          size: 24,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          'Generated: ${_formatTimestamp(analysis!.dateTime)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodyMedium?.color,
-                          ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'AI Insights',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-              ],
+                  const SizedBox(height: 20),
+                  if (isLoadingAI)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.amber[600]!),
+                                strokeWidth: 3,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Analyzing sensor data with AI...',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.amber.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            aiAnalysis,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              height: 1.7,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 14,
+                              color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Generated: ${_formatTimestamp(analysis!.dateTime)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),
         
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         
-        // --- REVAMPED: Recommendations Card ---
+        // Recommendations Card with modern design
         Card(
           color: cardColor,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.lightbulb_outline, color: theme.colorScheme.primary),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.tips_and_updates_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 24,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     Text(
-                      'Recommendations',
-                      style: theme.textTheme.titleLarge,
+                      'Expert Recommendations',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                _buildRecommendation(),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: _buildRecommendation(),
+                ),
               ],
             ),
           ),
@@ -413,6 +714,20 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     final chartColor = _getStatusColor(analysis!.status);
     final gridColor = theme.colorScheme.surface.withOpacity(0.3);
 
+    // Return different chart types based on selection
+    switch (selectedChartType) {
+      case 'bar':
+        return _buildBarChart(timestamps, values, chartColor, gridColor, yMin, yMax, xInterval, range);
+      case 'area':
+        return _buildAreaChart(timestamps, values, chartColor, gridColor, yMin, yMax, xInterval, range);
+      case 'line':
+      default:
+        return _buildLineChart(timestamps, values, chartColor, gridColor, yMin, yMax, xInterval, range);
+    }
+  }
+
+  Widget _buildLineChart(List<double> timestamps, List<double> values, Color chartColor, Color gridColor, double yMin, double yMax, double xInterval, double range) {
+    final theme = Theme.of(context);
     return LineChart(
       LineChartData(
         gridData: FlGridData(
@@ -433,62 +748,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
             );
           },
         ),
-        titlesData: FlTitlesData(
-          show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 30,
-              interval: xInterval,
-              getTitlesWidget: (value, meta) {
-                final dt = DateTime.fromMillisecondsSinceEpoch((value * 1000).toInt());
-                String timeLabel;
-                // --- FIX: DateFormat is now available ---
-                if(selectedTimeRange == 'seconds' || selectedTimeRange == 'minutes') {
-                  timeLabel = DateFormat.Hms().format(dt);
-                } else if (selectedTimeRange == 'hours') {
-                  timeLabel = DateFormat.Hm().format(dt);
-                } else {
-                  timeLabel = DateFormat.Md().format(dt);
-                }
-                
-                return SideTitleWidget(
-                  axisSide: meta.axisSide,
-                  space: 8.0,
-                  child: Text(
-                    timeLabel,
-                    style: TextStyle(
-                      color: theme.textTheme.bodyMedium?.color,
-                      fontSize: 10,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 40,
-              interval: _getLeftInterval(range),
-              getTitlesWidget: (value, meta) {
-                return SideTitleWidget(
-                  axisSide: meta.axisSide,
-                  space: 8.0,
-                  child: Text(
-                    value.toStringAsFixed(0),
-                    style: TextStyle(
-                      color: theme.textTheme.bodyMedium?.color,
-                      fontSize: 10,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
+        titlesData: _buildTitlesData(xInterval, range, theme),
         borderData: FlBorderData(
           show: true,
           border: Border.all(color: gridColor, width: 1),
@@ -508,15 +768,191 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
             ),
             isCurved: true,
             color: chartColor,
-            barWidth: 4,
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: values.length < 20,
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 3,
+                  color: chartColor,
+                  strokeWidth: 1.5,
+                  strokeColor: Colors.white,
+                );
+              },
+            ),
+            belowBarData: BarAreaData(show: false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBarChart(List<double> timestamps, List<double> values, Color chartColor, Color gridColor, double yMin, double yMax, double xInterval, double range) {
+    final theme = Theme.of(context);
+    return BarChart(
+      BarChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: _getLeftInterval(range),
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: gridColor,
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: _buildTitlesData(xInterval, range, theme),
+        borderData: FlBorderData(
+          show: true,
+          border: Border(
+            left: BorderSide(color: gridColor, width: 1),
+            bottom: BorderSide(color: gridColor, width: 1),
+          ),
+        ),
+        minY: yMin,
+        maxY: yMax,
+        barGroups: List.generate(
+          values.length,
+          (index) => BarChartGroupData(
+            x: timestamps[index].toInt(),
+            barRods: [
+              BarChartRodData(
+                toY: values[index],
+                color: chartColor,
+                width: values.length > 50 ? 4 : 12,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                backDrawRodData: BackgroundBarChartRodData(
+                  show: true,
+                  toY: yMax,
+                  color: gridColor.withOpacity(0.1),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAreaChart(List<double> timestamps, List<double> values, Color chartColor, Color gridColor, double yMin, double yMax, double xInterval, double range) {
+    final theme = Theme.of(context);
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: _getLeftInterval(range),
+          verticalInterval: xInterval,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: gridColor,
+              strokeWidth: 1,
+            );
+          },
+          getDrawingVerticalLine: (value) {
+            return FlLine(
+              color: gridColor,
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: _buildTitlesData(xInterval, range, theme),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: gridColor, width: 1),
+        ),
+        minX: timestamps.first,
+        maxX: timestamps.last,
+        minY: yMin,
+        maxY: yMax,
+        lineBarsData: [
+          LineChartBarData(
+            spots: List.generate(
+              values.length,
+              (index) => FlSpot(
+                timestamps[index],
+                values[index],
+              ),
+            ),
+            isCurved: true,
+            color: chartColor,
+            barWidth: 2,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: chartColor.withOpacity(0.2),
+              gradient: LinearGradient(
+                colors: [
+                  chartColor.withOpacity(0.5),
+                  chartColor.withOpacity(0.1),
+                  chartColor.withOpacity(0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  FlTitlesData _buildTitlesData(double xInterval, double range, ThemeData theme) {
+    return FlTitlesData(
+      show: true,
+      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      bottomTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 30,
+          interval: xInterval,
+          getTitlesWidget: (value, meta) {
+            final dt = DateTime.fromMillisecondsSinceEpoch((value * 1000).toInt());
+            String timeLabel;
+            if(selectedTimeRange == 'seconds' || selectedTimeRange == 'minutes') {
+              timeLabel = DateFormat.Hms().format(dt);
+            } else if (selectedTimeRange == 'hours') {
+              timeLabel = DateFormat.Hm().format(dt);
+            } else {
+              timeLabel = DateFormat.Md().format(dt);
+            }
+            
+            return SideTitleWidget(
+              axisSide: meta.axisSide,
+              space: 8.0,
+              child: Text(
+                timeLabel,
+                style: TextStyle(
+                  color: theme.textTheme.bodyMedium?.color,
+                  fontSize: 10,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      leftTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 40,
+          interval: _getLeftInterval(range),
+          getTitlesWidget: (value, meta) {
+            return SideTitleWidget(
+              axisSide: meta.axisSide,
+              space: 8.0,
+              child: Text(
+                value.toStringAsFixed(0),
+                style: TextStyle(
+                  color: theme.textTheme.bodyMedium?.color,
+                  fontSize: 10,
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -657,7 +1093,8 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     return Text(
       recommendation,
       style: theme.textTheme.bodyLarge?.copyWith(
-        height: 1.5,
+        height: 1.7,
+        fontSize: 15,
       ),
     );
   }
@@ -667,4 +1104,3 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     return DateFormat('MMM d, yyyy @ h:mm a').format(dateTime);
   }
 }
-
