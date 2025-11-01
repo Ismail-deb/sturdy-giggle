@@ -70,7 +70,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         Icon(
                           Icons.notifications_none,
                           size: 64,
-                          color: theme.colorScheme.primary.withOpacity(0.5),
+                          color: theme.colorScheme.primary.withAlpha((0.5 * 255).round()),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -127,12 +127,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final dateFormat = DateFormat('MMM d, h:mm a');
     
     // Theme-aware card colors
-    final readColor = isDark 
-        ? theme.colorScheme.surface.withOpacity(0.5)
-        : Colors.grey.shade100;
-    final unreadColor = isDark
-        ? theme.colorScheme.surface
-        : Colors.grey.shade300;
+  final readColor = isDark 
+    ? theme.colorScheme.surface.withAlpha((0.5 * 255).round())
+    : Colors.grey.shade100;
+  final unreadColor = isDark
+    ? theme.colorScheme.surface
+    : Colors.grey.shade300;
     
     return Dismissible(
       key: ValueKey('${notification.id}_$index'), // Unique key combining ID and index
@@ -175,7 +175,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               Text(
                 notification.message,
                 style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                  color: theme.colorScheme.onSurface.withAlpha((0.8 * 255).round()),
                 ),
               ),
               const SizedBox(height: 4),
@@ -183,7 +183,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 '${notification.sensorType} • ${dateFormat.format(notification.timestamp)}',
                 style: TextStyle(
                   fontSize: 12,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withAlpha((0.6 * 255).round()),
                 ),
               ),
             ],

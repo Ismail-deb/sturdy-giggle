@@ -104,7 +104,8 @@ class SensorData {
       light: json['light']?.toDouble() ?? 0.0,
       pressure: json['pressure']?.toDouble() ?? 0.0,
       altitude: json['altitude']?.toDouble() ?? 0.0,
-      soilMoisture: json['soil_moisture']?.toDouble() ?? 0.0,
+  // Prefer sloi_moisture (external data source) if available, otherwise fall back to soil_moisture
+  soilMoisture: (json['sloi_moisture'] ?? json['soil_moisture'])?.toDouble() ?? 0.0,
       timestamp: json['timestamp'] != null 
           ? DateTime.fromMillisecondsSinceEpoch((json['timestamp'] * 1000).round()) 
           : DateTime.now(),
@@ -268,13 +269,34 @@ class SensorData {
 
   // Helper method to determine status of soil moisture
   String getSoilMoistureStatus() {
+    // Updated thresholds (from provided spec):
+    // critical_low = 15.0
+    // low = 30.0
+    // optimal_min = 40.0
+    // optimal_max = 60.0
+    // high = 80.0
+    // critical_high = 90.0
+
+    if (soilMoisture < 15.0) {
+      return 'Critical (Low)';
+    }
+    if (soilMoisture >= 15.0 && soilMoisture < 30.0) {
+      return 'Low';
+    }
+    if (soilMoisture >= 30.0 && soilMoisture < 40.0) {
+      return 'Acceptable';
+    }
     if (soilMoisture >= 40.0 && soilMoisture <= 60.0) {
       return 'Optimal';
-    } else if (soilMoisture >= 30.0 && soilMoisture < 40.0 || soilMoisture > 60.0 && soilMoisture <= 70.0) {
-      return 'Acceptable';
-    } else {
-      return 'Critical';
     }
+    if (soilMoisture > 60.0 && soilMoisture <= 80.0) {
+      return 'Acceptable';
+    }
+    if (soilMoisture > 80.0 && soilMoisture < 90.0) {
+      return 'High';
+    }
+    // soilMoisture >= 90
+    return 'Critical (High)';
   }
   
   // Helper method for air quality (MQ135)

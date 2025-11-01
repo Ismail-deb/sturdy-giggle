@@ -134,12 +134,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onChanged: (val) async {
                               final prefs = await SharedPreferences.getInstance();
                               await prefs.setBool('altitude_use_feet', val);
+                              if (!mounted) return;
                               setState(() {
                                 _useFeet = val;
                               });
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(this.context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Altitude units set to: ' + (val ? 'feet (ft)' : 'meters (m)')),
+                                  content: Text('Altitude units set to: ${val ? 'feet (ft)' : 'meters (m)'}'),
                                 ),
                               );
                             },
@@ -219,10 +220,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             const SizedBox(height: 16),
                             Container(
                               padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
+                                decoration: BoxDecoration(
                                 color: _isSuccess 
-                                  ? Colors.green.withOpacity(0.1)
-                                  : Colors.red.withOpacity(0.1),
+                                  ? Colors.green.withAlpha((0.1 * 255).round())
+                                  : Colors.red.withAlpha((0.1 * 255).round()),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: _isSuccess ? Colors.green : Colors.red,

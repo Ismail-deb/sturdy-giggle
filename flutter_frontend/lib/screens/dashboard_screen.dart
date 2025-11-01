@@ -261,12 +261,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       final msg = path == 'opened-in-browser'
                                           ? 'Report opened in a new tab'
                                           : 'Report saved to: $path';
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(this.context).showSnackBar(
                                         SnackBar(content: Text(msg)),
                                       );
                                     } catch (e) {
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(this.context).showSnackBar(
                                         SnackBar(content: Text('Export failed: $e')),
                                       );
                                     }
@@ -308,11 +308,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: isApiConnected
-                                      ? Colors.green.withOpacity(0.1)
-                                      : Colors.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
+                                    color: isApiConnected
+                                        ? Colors.green.withAlpha((0.1 * 255).round())
+                                        : Colors.red.withAlpha((0.1 * 255).round()),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -368,12 +368,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 final msg = path == 'opened-in-browser'
                                     ? 'Report opened in a new tab'
                                     : 'Report saved to: $path';
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                ScaffoldMessenger.of(this.context).showSnackBar(
                                   SnackBar(content: Text(msg)),
                                 );
                               } catch (e) {
                                 if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                ScaffoldMessenger.of(this.context).showSnackBar(
                                   SnackBar(content: Text('Export failed: $e')),
                                 );
                               }
@@ -408,8 +408,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: isApiConnected
-                                  ? Colors.green.withOpacity(0.1)
-                                  : Colors.red.withOpacity(0.1),
+                                  ? Colors.green.withAlpha((0.1 * 255).round())
+                                  : Colors.red.withAlpha((0.1 * 255).round()),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(
@@ -582,29 +582,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
                 
-                // CO2 Level Card
-                SensorCard(
-                  icon: Icons.cloud,
-                  iconColor: Colors.purple,
-                  title: 'CO2 Level',
-                  value: sensorData!.co2Level.toStringAsFixed(0),
-                  unit: 'ppm',
-                  status: sensorData!.getCO2Status(),
-                  statusColor: _getSensorStatusColor(sensorData!.getCO2Status()),
-                  progress: _calculateProgress(sensorData!.co2Level, 0, 2000),
-                  progressColor: Colors.purple,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SensorAnalysisScreen(
-                          sensorType: 'co2_level',
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                
                 // Flame Detection Card
                 SensorCard(
                   icon: Icons.local_fire_department,
@@ -628,16 +605,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
 
-                // Air Quality (MQ135)
+                // Air Quality (MQ135 + CO₂)
                 SensorCard(
                   icon: Icons.air,
                   iconColor: Colors.teal,
-                  title: 'Air Quality',
-                  value: sensorData!.mq135Drop.toStringAsFixed(0),
+                  title: 'CO₂',
+                  value: sensorData!.co2Level.toStringAsFixed(0),
                   unit: 'ppm',
-                  status: sensorData!.getAirQualityStatus(),
+                  status: 'Air Quality: ${sensorData!.getAirQualityStatus()}',
                   statusColor: _getSensorStatusColor(sensorData!.getAirQualityStatus()),
-                  progress: _calculateProgress(sensorData!.mq135Drop, 0, 1000),
+                  progress: _calculateProgress(sensorData!.co2Level, 300, 1500),
                   progressColor: Colors.teal,
                   onTap: () {
                     Navigator.push(
@@ -801,8 +778,8 @@ class _BannerHero extends StatelessWidget {
             // Overlay to improve legibility
             Container(
               color: isDark
-                  ? Colors.black.withOpacity(0.30)
-                  : scheme.surface.withOpacity(0.22),
+                  ? Colors.black.withAlpha((0.30 * 255).round())
+                  : scheme.surface.withAlpha((0.22 * 255).round()),
             ),
             // Decorative content
             Padding(
@@ -816,7 +793,7 @@ class _BannerHero extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withAlpha((0.15 * 255).round()),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -835,7 +812,7 @@ class _BannerHero extends StatelessWidget {
                             width: width >= 1200 ? 110 : (width >= 800 ? 90 : 80),
                             height: width >= 1200 ? 110 : (width >= 800 ? 90 : 80),
                             decoration: BoxDecoration(
-                              color: scheme.primary.withOpacity(0.1),
+                              color: scheme.primary.withAlpha((0.1 * 255).round()),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Icon(
@@ -867,7 +844,7 @@ class _BannerHero extends StatelessWidget {
                         'Live insights • Smart alerts • AI recommendations',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyLarge?.copyWith(
-                              color: scheme.onSurface.withOpacity(0.9),
+                              color: scheme.onSurface.withAlpha((0.9 * 255).round()),
                               fontSize: width >= 1200 ? 18 : (width >= 800 ? 16 : 14),
                             ),
                       ),

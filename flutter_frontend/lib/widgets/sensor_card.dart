@@ -58,10 +58,10 @@ class SensorCard extends StatelessWidget {
 
                 return Container(
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withOpacity(isDark ? 0.22 : 0.70),
+                    color: theme.colorScheme.surface.withAlpha(((isDark ? 0.22 : 0.70) * 255).round()),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Theme.of(context).dividerColor.withOpacity(isDark ? 0.30 : 0.25),
+                      color: Theme.of(context).dividerColor.withAlpha(((isDark ? 0.30 : 0.25) * 255).round()),
                       width: 1,
                     ),
                   ),
@@ -104,9 +104,9 @@ class SensorCard extends StatelessWidget {
                                   size: Size(gaugeSize, gaugeSize),
                                   painter: _GaugePainter(
                                     progress: 1.0,
-                                    color: isDark
-                                        ? theme.scaffoldBackgroundColor.withOpacity(0.3)
-                                        : Colors.grey.shade300,
+                  color: isDark
+                    ? theme.scaffoldBackgroundColor.withAlpha((0.3 * 255).round())
+                    : Colors.grey.shade300,
                                     strokeWidth: stroke,
                                   ),
                                 ),

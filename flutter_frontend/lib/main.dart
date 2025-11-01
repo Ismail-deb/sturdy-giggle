@@ -74,11 +74,9 @@ class AppThemes {
       primary: AppColors.lightPrimary,
       secondary: AppColors.lightSecondary,
       surface: AppColors.lightCard,
-      background: AppColors.lightBackground,
       onPrimary: Colors.white,
       onSecondary: Colors.white,
-      onSurface: AppColors.lightText,
-      onBackground: AppColors.lightText,
+  onSurface: AppColors.lightText,
       error: Colors.red,
       onError: Colors.white,
     ),
@@ -117,9 +115,9 @@ class AppThemes {
     // Material 3 DropdownMenu
     dropdownMenuTheme: DropdownMenuThemeData(
       menuStyle: MenuStyle(
-        backgroundColor: MaterialStatePropertyAll(AppColors.lightCard),
-        elevation: MaterialStatePropertyAll(2),
-        shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+        backgroundColor: WidgetStatePropertyAll(AppColors.lightCard),
+        elevation: WidgetStatePropertyAll(2),
+        shape: WidgetStatePropertyAll(RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         )),
       ),
@@ -128,14 +126,14 @@ class AppThemes {
     ),
     // SearchBar (Material 3)
     searchBarTheme: SearchBarThemeData(
-      backgroundColor: MaterialStatePropertyAll(AppColors.lightCard),
-      elevation: const MaterialStatePropertyAll(0),
-      shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+      backgroundColor: WidgetStatePropertyAll(AppColors.lightCard),
+      elevation: const WidgetStatePropertyAll(0),
+      shape: WidgetStatePropertyAll(RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Color(0xFFBCAAA4), width: 1), // light brown border
       )),
-      hintStyle: const MaterialStatePropertyAll(TextStyle(color: AppColors.lightTextSecondary)),
-      textStyle: const MaterialStatePropertyAll(TextStyle(color: AppColors.lightText)),
+      hintStyle: const WidgetStatePropertyAll(TextStyle(color: AppColors.lightTextSecondary)),
+      textStyle: const WidgetStatePropertyAll(TextStyle(color: AppColors.lightText)),
     ),
     // Selection colors in inputs
     textSelectionTheme: const TextSelectionThemeData(
@@ -219,11 +217,9 @@ class AppThemes {
       primary: AppColors.darkPrimary,
       secondary: AppColors.darkSecondary,
       surface: AppColors.darkCard,
-      background: AppColors.darkBackground,
       onPrimary: Colors.black,
       onSecondary: Colors.black,
-      onSurface: AppColors.darkText,
-      onBackground: AppColors.darkText,
+  onSurface: AppColors.darkText,
       error: Colors.redAccent,
       onError: Colors.black,
     ),
@@ -262,9 +258,9 @@ class AppThemes {
     // Material 3 DropdownMenu
     dropdownMenuTheme: DropdownMenuThemeData(
       menuStyle: MenuStyle(
-        backgroundColor: MaterialStatePropertyAll(AppColors.darkCard),
-        elevation: MaterialStatePropertyAll(2),
-        shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+        backgroundColor: WidgetStatePropertyAll(AppColors.darkCard),
+        elevation: WidgetStatePropertyAll(2),
+        shape: WidgetStatePropertyAll(RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         )),
       ),
@@ -273,14 +269,14 @@ class AppThemes {
     ),
     // SearchBar (Material 3)
     searchBarTheme: SearchBarThemeData(
-      backgroundColor: MaterialStatePropertyAll(AppColors.darkCard),
-      elevation: const MaterialStatePropertyAll(0),
-      shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+      backgroundColor: WidgetStatePropertyAll(AppColors.darkCard),
+      elevation: const WidgetStatePropertyAll(0),
+      shape: WidgetStatePropertyAll(RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.white24, width: 1),
       )),
-      hintStyle: const MaterialStatePropertyAll(TextStyle(color: AppColors.darkTextSecondary)),
-      textStyle: const MaterialStatePropertyAll(TextStyle(color: AppColors.darkText)),
+      hintStyle: const WidgetStatePropertyAll(TextStyle(color: AppColors.darkTextSecondary)),
+      textStyle: const WidgetStatePropertyAll(TextStyle(color: AppColors.darkText)),
     ),
     // Selection colors in inputs
     textSelectionTheme: const TextSelectionThemeData(
@@ -650,8 +646,8 @@ class _AppShellState extends State<AppShell> {
                 // Subtle dark/light overlay for contrast
                 Container(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.black.withOpacity(0.25)
-                      : Colors.white.withOpacity(0.10),
+                      ? Colors.black.withAlpha((0.25 * 255).round())
+                      : Colors.white.withAlpha((0.10 * 255).round()),
                 ),
                 // Foreground screen content
                 _screens[_selectedIndex],

@@ -147,15 +147,92 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
         ? theme.scaffoldBackgroundColor // Keep dark theme unchanged
         : const Color(0xFFF5E6D3); // Warm beige for light theme
     
+    // Get icon and color based on sensor type
+    IconData sensorIcon;
+    Color iconColor;
+    String displayName = _getSensorDisplayName();
+    
+    final st = widget.sensorType.toLowerCase();
+    if (st.contains('temp')) {
+      sensorIcon = Icons.thermostat;
+      iconColor = Colors.deepOrange;
+    } else if (st.contains('humid')) {
+      sensorIcon = Icons.water_drop;
+      iconColor = Colors.blue;
+    } else if (st.contains('co2') || st.contains('air')) {
+      sensorIcon = Icons.air;
+      iconColor = Colors.teal;
+    } else if (st.contains('light')) {
+      sensorIcon = Icons.light_mode;
+      iconColor = Colors.amber;
+    } else if (st.contains('soil') || st.contains('moisture')) {
+      sensorIcon = Icons.grass;
+      iconColor = Colors.brown;
+    } else if (st.contains('smoke') || st.contains('mq2') || st.contains('flammable')) {
+      sensorIcon = Icons.smoke_free;
+      iconColor = Colors.deepOrange;
+    } else if (st.contains('mq7') || st.contains('carbon monoxide')) {
+      sensorIcon = Icons.warning_amber;
+      iconColor = Colors.red;
+    } else if (st.contains('flame')) {
+      sensorIcon = Icons.local_fire_department;
+      iconColor = Colors.redAccent;
+    } else if (st.contains('pressure')) {
+      sensorIcon = Icons.compress;
+      iconColor = Colors.indigo;
+    } else if (st.contains('altitude')) {
+      sensorIcon = Icons.landscape;
+      iconColor = Colors.green;
+    } else {
+      sensorIcon = Icons.sensors;
+      iconColor = theme.colorScheme.primary;
+    }
+    
     return Scaffold(
       backgroundColor: beigeBackground,
       appBar: AppBar(
-        title: Text('${widget.sensorType} Analysis'),
+        backgroundColor: beigeBackground,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withAlpha((0.15 * 255).round()),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                sensorIcon,
+                color: iconColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                displayName,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadAnalysis,
-          )
+            tooltip: 'Refresh Data',
+            onPressed: () {
+              _loadAnalysis();
+              _loadAIAnalysis();
+            },
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: isLoading
@@ -164,6 +241,24 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
               ? Center(child: Text('Error: $errorMessage'))
               : _buildAnalysisContent(),
     );
+  }
+  
+  String _getSensorDisplayName() {
+    final st = widget.sensorType.toLowerCase();
+    if (st.contains('temp')) return 'Temperature';
+    if (st.contains('humid')) return 'Humidity';
+    if (st.contains('co2') || st.contains('air_quality')) return 'CO₂ & Air Quality';
+    if (st.contains('light')) return 'Light Intensity';
+    if (st.contains('soil') || st.contains('moisture')) return 'Soil Moisture';
+    if (st.contains('smoke') || st.contains('mq2') || st.contains('flammable')) return 'Flammable Gas';
+    if (st.contains('mq7') || st.contains('carbon monoxide')) return 'Carbon Monoxide';
+    if (st.contains('flame')) return 'Flame Detection';
+    if (st.contains('pressure')) return 'Atmospheric Pressure';
+    if (st.contains('altitude')) return 'Altitude';
+    // Capitalize first letter of each word
+    return widget.sensorType.split('_').map((word) => 
+      word[0].toUpperCase() + word.substring(1)
+    ).join(' ');
   }
   
   Widget _buildAnalysisContent() {
@@ -293,25 +388,47 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
         
         const SizedBox(height: 16),
         
-        // --- REVAMPED: AI Analysis Card ---
+        // --- COMBINED: AI Analysis & Recommendations Card ---
         Card(
           color: cardColor,
+          elevation: 4,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header with icon and title
                 Row(
                   children: [
-                    Icon(Icons.auto_awesome, color: Colors.amber[600]),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber[600]?.withAlpha((0.2 * 255).round()),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.auto_awesome, color: Colors.amber[600], size: 24),
+                    ),
                     const SizedBox(width: 12),
-                    Text(
-                      'AI Analysis',
-                      style: theme.textTheme.titleLarge,
+                    Expanded(
+                      child: Text(
+                        'AI Analysis & Recommendations',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    // Refresh button
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      color: theme.colorScheme.primary,
+                      tooltip: 'Refresh AI Analysis',
+                      onPressed: isLoadingAI ? null : _loadAIAnalysis,
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+                
+                // AI Analysis Section
                 if (isLoadingAI)
                   Center(
                     child: Column(
@@ -333,51 +450,98 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        aiAnalysis,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          height: 1.5,
-                        ),
+                      // Analysis header
+                      Row(
+                        children: [
+                          Icon(Icons.analytics_outlined, 
+                            color: theme.colorScheme.primary, 
+                            size: 20
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Analysis',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface.withAlpha((0.5 * 255).round()),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.amber[600]!.withAlpha((0.3 * 255).round()),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          aiAnalysis,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            height: 1.6,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Recommendations header
+                      Row(
+                        children: [
+                          Icon(Icons.lightbulb_outline, 
+                            color: theme.colorScheme.primary, 
+                            size: 20
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Recommendations',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer.withAlpha((0.3 * 255).round()),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withAlpha((0.3 * 255).round()),
+                            width: 1,
+                          ),
+                        ),
+                        child: _buildRecommendation(),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Timestamp at the bottom
                       Align(
                         alignment: Alignment.centerRight,
-                        child: Text(
-                          'Generated: ${_formatTimestamp(analysis!.dateTime)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodyMedium?.color,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.schedule,
+                              size: 14,
+                              color: theme.textTheme.bodySmall?.color,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Generated: ${_formatTimestamp(analysis!.dateTime)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-              ],
-            ),
-          ),
-        ),
-        
-        const SizedBox(height: 16),
-        
-        // --- REVAMPED: Recommendations Card ---
-        Card(
-          color: cardColor,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.lightbulb_outline, color: theme.colorScheme.primary),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Recommendations',
-                      style: theme.textTheme.titleLarge,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildRecommendation(),
               ],
             ),
           ),
@@ -411,7 +575,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     final xInterval = timeRange > 0 ? timeRange / 5 : 1.0;
     
     final chartColor = _getStatusColor(analysis!.status);
-    final gridColor = theme.colorScheme.surface.withOpacity(0.3);
+  final gridColor = theme.colorScheme.surface.withAlpha((0.3 * 255).round());
 
     return LineChart(
       LineChartData(
@@ -513,7 +677,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: chartColor.withOpacity(0.2),
+              color: chartColor.withAlpha((0.2 * 255).round()),
             ),
           ),
         ],
@@ -523,7 +687,9 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
   
   Widget _buildRecommendation() {
     final theme = Theme.of(context);
-    String recommendation = '';
+    List<String> recommendations = [];
+    IconData recommendationIcon = Icons.info_outline;
+    Color recommendationColor = theme.colorScheme.primary;
     
     // Use a local variable for analysis to ensure null safety
     final currentAnalysis = analysis;
@@ -532,53 +698,159 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     }
 
     final type = widget.sensorType.toLowerCase();
+    final status = currentAnalysis.status.toLowerCase();
+    
     switch (type) {
       case 'temperature':
-        if (currentAnalysis.status.toLowerCase() == 'optimal') {
-          recommendation = 'Current temperature is optimal for plant growth. Continue maintaining current conditions.';
-        } else if (currentAnalysis.status.toLowerCase() == 'acceptable') {
+        if (status == 'optimal') {
+          recommendationIcon = Icons.check_circle_outline;
+          recommendationColor = Colors.green;
+          recommendations = [
+            'Current temperature is optimal for plant growth',
+            'Continue maintaining current climate control settings',
+            'Monitor for any sudden changes in weather',
+          ];
+        } else if (status == 'acceptable') {
+          recommendationIcon = Icons.warning_amber_outlined;
+          recommendationColor = Colors.orange;
           final isHigh = (currentAnalysis.currentValue as num) > 25;
-          recommendation = isHigh
-              ? 'Consider increasing ventilation or shading to reduce temperature.'
-              : 'Consider increasing heating to raise temperature to optimal range.';
+          recommendations = isHigh
+              ? [
+                  'Temperature is slightly elevated',
+                  'Increase ventilation or activate cooling systems',
+                  'Consider adding shading during peak sun hours',
+                  'Ensure fans and air circulation are optimal',
+                ]
+              : [
+                  'Temperature is slightly below optimal',
+                  'Increase heating to raise temperature gradually',
+                  'Check for drafts or cold air leaks',
+                  'Consider supplemental heating during cold periods',
+                ];
         } else {
+          recommendationIcon = Icons.error_outline;
+          recommendationColor = Colors.red;
           final isHigh = (currentAnalysis.currentValue as num) > 28;
-          recommendation = isHigh
-              ? 'Temperature is too high! Increase ventilation and shading immediately.'
-              : 'Temperature is too low! Increase heating immediately to prevent plant damage.';
+          recommendations = isHigh
+              ? [
+                  '⚠️ Temperature is critically high!',
+                  'IMMEDIATE ACTION: Increase ventilation to maximum',
+                  'Activate all cooling systems and shading',
+                  'Monitor plants for heat stress symptoms',
+                  'Consider misting to reduce temperature',
+                ]
+              : [
+                  '⚠️ Temperature is critically low!',
+                  'IMMEDIATE ACTION: Increase heating systems',
+                  'Close vents and seal any cold air entry points',
+                  'Monitor plants for cold damage',
+                  'Consider emergency heating if available',
+                ];
         }
         break;
         
       case 'humidity':
-        if (currentAnalysis.status.toLowerCase() == 'optimal') {
-          recommendation = 'Humidity levels are optimal for most plants. Continue current management.';
-        } else if (currentAnalysis.status.toLowerCase() == 'acceptable') {
+        if (status == 'optimal') {
+          recommendationIcon = Icons.check_circle_outline;
+          recommendationColor = Colors.green;
+          recommendations = [
+            'Humidity levels are optimal for healthy plant growth',
+            'Continue current humidity management practices',
+            'Monitor for seasonal changes',
+          ];
+        } else if (status == 'acceptable') {
+          recommendationIcon = Icons.warning_amber_outlined;
+          recommendationColor = Colors.orange;
           final isHigh = (currentAnalysis.currentValue as num) > 70;
-          recommendation = isHigh
-              ? 'Consider increasing ventilation to reduce humidity levels slightly.'
-              : 'Consider using a humidifier or misting plants to raise humidity.';
+          recommendations = isHigh
+              ? [
+                  'Humidity is slightly elevated',
+                  'Increase ventilation to reduce moisture',
+                  'Check for water leaks or excessive watering',
+                  'Monitor plants for fungal issues',
+                ]
+              : [
+                  'Humidity is slightly below optimal',
+                  'Use humidifiers or misting systems',
+                  'Group plants together to increase local humidity',
+                  'Check irrigation systems are functioning',
+                ];
         } else {
+          recommendationIcon = Icons.error_outline;
+          recommendationColor = Colors.red;
           final isHigh = (currentAnalysis.currentValue as num) > 85;
-          recommendation = isHigh
-              ? 'Humidity is too high! Increase ventilation to prevent mold and disease.'
-              : 'Humidity is too low! Increase humidification to prevent plant stress.';
+          recommendations = isHigh
+              ? [
+                  '⚠️ Humidity is critically high!',
+                  'IMMEDIATE ACTION: Maximize ventilation',
+                  'Check for water leaks or flooding',
+                  'Inspect plants for mold, mildew, or rot',
+                  'Consider dehumidification systems',
+                ]
+              : [
+                  '⚠️ Humidity is critically low!',
+                  'IMMEDIATE ACTION: Increase humidification',
+                  'Check all watering and misting systems',
+                  'Monitor plants for wilting or leaf curl',
+                  'Consider emergency misting',
+                ];
         }
         break;
 
-      // Air Quality (MQ135)
+      // Air Quality (MQ135) + CO₂
       case 'air_quality':
       case 'air quality':
       case 'mq135':
-        switch (currentAnalysis.status.toLowerCase()) {
-          case 'good':
-            recommendation = 'Air quality is good. Keep ventilation operating normally to maintain fresh air exchange.';
-            break;
-          case 'moderate':
-            recommendation = 'Air quality is moderate. Increase ventilation, inspect for pollutant sources, and ensure fans/filters are clean.';
-            break;
-          case 'poor':
-          default:
-            recommendation = 'Air quality is poor! Immediately increase ventilation, check fans/filters, and investigate sources (e.g., combustion, chemicals). Limit human occupancy until levels improve.';
+      case 'co2':
+      case 'co₂':
+        if (status == 'optimal') {
+          recommendationIcon = Icons.check_circle_outline;
+          recommendationColor = Colors.green;
+          recommendations = [
+            'Air quality and CO₂ levels are optimal',
+            'Continue normal ventilation operations',
+            'Maintain current air exchange rates',
+          ];
+        } else if (status == 'good') {
+          recommendationIcon = Icons.check_circle_outline;
+          recommendationColor = Colors.lightGreen;
+          recommendations = [
+            'Air quality is good with acceptable CO₂ levels',
+            'Keep ventilation systems running smoothly',
+            'Monitor for any changes in air composition',
+          ];
+        } else if (status == 'moderate') {
+          recommendationIcon = Icons.warning_amber_outlined;
+          recommendationColor = Colors.orange;
+          recommendations = [
+            'Air quality is moderate - improvement needed',
+            'Increase ventilation to improve air exchange',
+            'Check for pollutant sources (dust, chemicals, etc.)',
+            'Ensure all fans and filters are clean and operational',
+            'Consider CO₂ supplementation if levels are low',
+          ];
+        } else if (status == 'high') {
+          recommendationIcon = Icons.error_outline;
+          recommendationColor = Colors.deepOrange;
+          recommendations = [
+            '⚠️ Air quality is concerning!',
+            'IMMEDIATE ACTION: Increase ventilation significantly',
+            'Inspect for combustion or chemical sources',
+            'Check air filters and replace if needed',
+            'Verify CO₂ enrichment systems are not over-dosing',
+            'Consider reducing occupancy until improved',
+          ];
+        } else {
+          recommendationIcon = Icons.error_outline;
+          recommendationColor = Colors.red;
+          recommendations = [
+            '⚠️ CRITICAL: Air quality is poor!',
+            'IMMEDIATE ACTION: Maximize all ventilation',
+            'Evacuate personnel if necessary',
+            'Shut down any CO₂ enrichment systems',
+            'Investigate all potential pollutant sources',
+            'Do not re-occupy until levels normalize',
+          ];
         }
         break;
 
@@ -587,16 +859,35 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
       case 'flammable_gas':
       case 'flammable gas':
       case 'mq2':
-        switch (currentAnalysis.status.toLowerCase()) {
-          case 'safe':
-            recommendation = 'No dangerous levels detected. Maintain ventilation and routine leak checks.';
-            break;
-          case 'elevated':
-            recommendation = 'Flammable gas levels are elevated. Improve ventilation, check for leaks, and restrict ignition sources until cleared.';
-            break;
-          case 'high':
-          default:
-            recommendation = 'DANGER: Flammable gas at high levels! Evacuate area, shut off gas/compression sources, eliminate ignition sources, and investigate immediately.';
+        if (status == 'safe') {
+          recommendationIcon = Icons.check_circle_outline;
+          recommendationColor = Colors.green;
+          recommendations = [
+            'No dangerous levels detected',
+            'Maintain regular ventilation',
+            'Continue routine gas leak inspections',
+          ];
+        } else if (status == 'elevated') {
+          recommendationIcon = Icons.warning_amber_outlined;
+          recommendationColor = Colors.orange;
+          recommendations = [
+            'Flammable gas levels are elevated',
+            'Improve ventilation immediately',
+            'Check for gas leaks in all connections',
+            'Restrict ignition sources (sparks, flames, etc.)',
+            'Monitor levels closely until cleared',
+          ];
+        } else {
+          recommendationIcon = Icons.error_outline;
+          recommendationColor = Colors.red;
+          recommendations = [
+            '⚠️ DANGER: Flammable gas at HIGH levels!',
+            'EVACUATE AREA IMMEDIATELY',
+            'Shut off all gas sources and compression systems',
+            'Eliminate all ignition sources',
+            'Call emergency services if needed',
+            'Do not re-enter until gas levels are safe',
+          ];
         }
         break;
 
@@ -604,61 +895,161 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
       case 'co':
       case 'carbon monoxide':
       case 'mq7':
-        switch (currentAnalysis.status.toLowerCase()) {
-          case 'safe':
-            recommendation = 'CO levels are safe. Ensure heating equipment is serviced and detectors are functioning.';
-            break;
-          case 'elevated':
-            recommendation = 'CO levels are elevated. Increase ventilation and inspect combustion appliances and flues immediately.';
-            break;
-          case 'high':
-          default:
-            recommendation = 'DANGER: High CO! Evacuate, shut down combustion sources, ventilate aggressively, and seek assistance. Treat exposure symptoms (headache, dizziness) urgently.';
+        if (status == 'safe') {
+          recommendationIcon = Icons.check_circle_outline;
+          recommendationColor = Colors.green;
+          recommendations = [
+            'CO levels are safe',
+            'Ensure heating equipment is regularly serviced',
+            'Verify CO detectors are functioning properly',
+          ];
+        } else if (status == 'elevated') {
+          recommendationIcon = Icons.warning_amber_outlined;
+          recommendationColor = Colors.orange;
+          recommendations = [
+            'CO levels are elevated',
+            'Increase ventilation immediately',
+            'Inspect all combustion appliances',
+            'Check flues and exhaust systems',
+          ];
+        } else {
+          recommendationIcon = Icons.error_outline;
+          recommendationColor = Colors.red;
+          recommendations = [
+            '⚠️ DANGER: High CO levels!',
+            'EVACUATE AREA IMMEDIATELY',
+            'Shut down all combustion sources',
+            'Ventilate aggressively',
+            'Seek medical attention for exposure symptoms',
+          ];
         }
         break;
 
-      // Altitude
-      case 'altitude':
-        switch (currentAnalysis.status.toLowerCase()) {
-          case 'low':
-            recommendation = 'Altitude is low (< 500m). Standard greenhouse practices apply. Monitor pressure trends for weather changes.';
-            break;
-          case 'normal':
-            recommendation = 'Altitude is in the normal range (500-1500m). Monitor how elevation affects temperature, humidity, and growing conditions.';
-            break;
-          case 'high':
-          default:
-            recommendation = 'Altitude is high (> 1500m). Be aware of reduced air pressure, increased UV exposure, and temperature swings. Adjust ventilation and shading accordingly.';
+      // Soil Moisture
+      case 'soil_moisture':
+      case 'soil moisture':
+      case 'moisture':
+        if (status == 'optimal') {
+          recommendationIcon = Icons.check_circle_outline;
+          recommendationColor = Colors.green;
+          recommendations = [
+            'Soil moisture is at optimal levels',
+            'Continue current watering schedule',
+            'Monitor for any changes in drainage',
+          ];
+        } else if (status == 'low' || status.contains('low')) {
+          recommendationIcon = Icons.warning_amber_outlined;
+          recommendationColor = Colors.orange;
+          recommendations = [
+            'Soil moisture is low',
+            'Increase watering frequency or duration',
+            'Check irrigation system for issues',
+            'Consider mulching to retain moisture',
+            'Monitor plants for wilting',
+          ];
+        } else {
+          recommendationIcon = Icons.error_outline;
+          recommendationColor = Colors.red;
+          recommendations = [
+            '⚠️ Soil moisture is critically ${status.contains("high") ? "high" : "low"}!',
+            status.contains("high")
+                ? 'Reduce watering immediately'
+                : 'Increase watering urgently',
+            status.contains("high")
+                ? 'Check for drainage problems or overwatering'
+                : 'Check irrigation system functionality',
+            status.contains("high")
+                ? 'Monitor for root rot symptoms'
+                : 'Watch for severe wilting or leaf drop',
+          ];
         }
         break;
 
-      // Pressure
-      case 'pressure':
-        switch (currentAnalysis.status.toLowerCase()) {
-          case 'low':
-            recommendation = 'Pressure is low (< 990 hPa). This often indicates stormy or unstable weather. Check ventilation and prepare for possible humidity spikes.';
-            break;
-          case 'normal':
-            recommendation = 'Pressure is normal (990-1030 hPa). Continue monitoring for weather trends that may affect greenhouse conditions.';
-            break;
-          case 'high':
-          default:
-            recommendation = 'Pressure is high (> 1030 hPa). This typically indicates clear, stable weather. Monitor temperature for possible heat buildup during sunny periods.';
+      // Light
+      case 'light':
+      case 'light_intensity':
+        if (status.contains('moderate') || status.contains('optimal')) {
+          recommendationIcon = Icons.check_circle_outline;
+          recommendationColor = Colors.green;
+          recommendations = [
+            'Light levels are suitable for plant growth',
+            'Maintain current lighting conditions',
+            'Monitor for seasonal light changes',
+          ];
+        } else if (status.contains('low') || status.contains('dim')) {
+          recommendationIcon = Icons.warning_amber_outlined;
+          recommendationColor = Colors.orange;
+          recommendations = [
+            'Light levels are low',
+            'Consider supplemental grow lights',
+            'Clean greenhouse panels to maximize light',
+            'Adjust plant positioning for better exposure',
+          ];
+        } else if (status.contains('bright')) {
+          recommendationIcon = Icons.warning_amber_outlined;
+          recommendationColor = Colors.orange;
+          recommendations = [
+            'Light levels are very bright',
+            'Consider shade cloth during peak hours',
+            'Monitor plants for sun stress or bleaching',
+            'Increase ventilation to manage heat',
+          ];
+        } else {
+          recommendationIcon = Icons.info_outline;
+          recommendationColor = theme.colorScheme.primary;
+          recommendations = [
+            'Monitor light levels regularly',
+            'Adjust based on plant requirements',
+          ];
         }
         break;
         
       default:
-        // Use AI analysis if available, otherwise a generic fallback
-        recommendation = aiAnalysis.isNotEmpty 
-            ? aiAnalysis 
-            : 'Monitor this parameter regularly and adjust based on plant requirements.';
+        // Generic recommendation
+        recommendationIcon = Icons.info_outline;
+        recommendationColor = theme.colorScheme.primary;
+        recommendations = [
+          'Monitor this parameter regularly',
+          'Adjust conditions based on plant requirements',
+          'Consult with agricultural specialists if needed',
+        ];
     }
     
-    return Text(
-      recommendation,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        height: 1.5,
-      ),
+    // Return formatted recommendations as bullet points
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: recommendations.map((rec) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0, right: 12.0),
+                child: Icon(
+                  recommendationIcon,
+                  size: 18,
+                  color: recommendationColor,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  rec,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    height: 1.5,
+                    fontWeight: rec.startsWith('⚠️') || rec.contains('IMMEDIATE') || rec.contains('DANGER') || rec.contains('EVACUATE')
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: rec.startsWith('⚠️') || rec.contains('IMMEDIATE') || rec.contains('DANGER') || rec.contains('EVACUATE')
+                        ? recommendationColor
+                        : theme.textTheme.bodyMedium?.color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
   

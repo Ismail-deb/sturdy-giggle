@@ -151,7 +151,7 @@ class SensorInfoScreen extends StatelessWidget {
                       vertical: 8,
                     ),
                     leading: CircleAvatar(
-                      backgroundColor: (sensor['color'] as Color).withOpacity(0.1),
+                      backgroundColor: (sensor['color'] as Color).withAlpha((0.1 * 255).round()),
                       child: Icon(
                         sensor['icon'] as IconData,
                         color: sensor['color'] as Color,
@@ -199,7 +199,7 @@ class SensorInfoScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 30,
-                        backgroundColor: (sensor['color'] as Color).withOpacity(0.1),
+                        backgroundColor: (sensor['color'] as Color).withAlpha((0.1 * 255).round()),
                         child: Icon(
                           sensor['icon'] as IconData,
                           color: sensor['color'] as Color,
@@ -318,9 +318,9 @@ class SensorInfoScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withAlpha((0.3 * 255).round())),
       ),
       child: Row(
         children: [
