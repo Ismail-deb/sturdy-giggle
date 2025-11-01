@@ -28,6 +28,8 @@ import io
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+print("=== Saterday testing backend (APEX default: https://oracleapex.com/ords/at2/greenhouse/sensor) ===")
+
 # Thread pool for async Gemini requests (non-blocking AI)
 _gemini_executor = concurrent.futures.ThreadPoolExecutor(max_workers=3, thread_name_prefix='gemini')
 
@@ -99,6 +101,7 @@ def _get_soil_moisture_status(value):
     else:
         return "Critical"
         
+
 def ip_broadcast_service():
     """Broadcasts the server IP address on the local network"""
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -159,7 +162,8 @@ items = [
 # APEX DATA SOURCE - All sensor data comes from Oracle APEX (NO SIMULATED DATA)
 # ============================================================================
 
-ORACLE_APEX_URL = os.getenv('ORACLE_APEX_URL', "https://oracleapex.com/ords/g3_data/iot/greenhouse/")
+# TESTING: default to the provided APEX URL for Saturday testing. You can still override via ORACLE_APEX_URL env var if needed.
+ORACLE_APEX_URL = os.getenv('ORACLE_APEX_URL', "https://oracleapex.com/ords/at2/greenhouse/sensor")
 
 def get_apex_connection(url):
     """Get or create persistent HTTPS connection to APEX for connection pooling"""
@@ -539,7 +543,7 @@ def get_sensor_data():
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    return jsonify({"status": "healthy", "message": "Flask API is running"})
+    return jsonify({"status": "healthy", "message": "Flask API is running (Saterday testing)"})
 
 @app.route('/api/sensor-analysis/<sensor_type>', methods=['GET'])
 def get_sensor_analysis(sensor_type):
@@ -1067,14 +1071,14 @@ if __name__ == '__main__':
     if ORACLE_APEX_URL:
         poller_thread = threading.Thread(target=continuous_apex_poller, daemon=True)
         poller_thread.start()
-        print('✅ Continuous APEX poller started (fetching every 3 seconds)')
+        print('✅ Continuous APEX poller started (fetching every 3 seconds) [Saterday testing]')
     else:
-        print('⚠️ ORACLE_APEX_URL not set - APEX polling disabled')
+        print('⚠️ ORACLE_APEX_URL not set - APEX polling disabled [Saterday testing]')
 
     # Start the IP broadcast service in a separate thread
     broadcast_thread = threading.Thread(target=ip_broadcast_service, daemon=True)
     broadcast_thread.start()
-    print("IP broadcast service started")
+    print("IP broadcast service started [Saterday testing]")
 
 @app.route('/api/export-report', methods=['GET'])
 def export_greenhouse_report():
@@ -1242,7 +1246,7 @@ def export_greenhouse_report():
                 logger.warning(f"Could not load app icon: {e}")
         
         # Title
-        elements.append(Paragraph("Greenhouse Environmental Report", title_style))
+        elements.append(Paragraph("Greenhouse Environmental Report (Saterday testing)", title_style))
         elements.append(Paragraph("Comprehensive Analysis & Recommendations", subtitle_style))
         
         # Report metadata banner - optimized for portrait/mobile viewing
@@ -1522,10 +1526,10 @@ def export_greenhouse_report():
             • Check for leaks or excess condensation<br/>
             <br/>
             <b>Long-term Improvements:</b><br/>
-            • Install circulation fans for continuous air movement<br/>
-            • Upgrade to automated exhaust fans with humidity sensors<br/>
-            • Implement thermal screens to manage condensation<br/>
-            • Ensure proper greenhouse design (slope, gutters for drainage)<br/>
+            • Install circulation fans for continuous air movement
+            • Upgrade to automated exhaust fans with humidity sensors
+            • Implement thermal screens to manage condensation
+            • Ensure proper greenhouse design (slope, gutters for drainage)
             • Consider horizontal airflow (HAF) fan systems
             """
         elif humidity_value > 70:
@@ -1573,10 +1577,10 @@ def export_greenhouse_report():
             • Verify air filters are clean and functional<br/>
             <br/>
             <b>Long-term Solutions:</b><br/>
-            • Install CO and gas detectors with alarms<br/>
-            • Ensure all combustion equipment is properly vented to exterior<br/>
-            • Use electric heating where possible<br/>
-            • Implement air filtration systems<br/>
+            • Install CO and gas detectors with alarms
+            • Ensure all combustion equipment is properly vented to exterior
+            • Use electric heating where possible
+            • Implement air filtration systems
             • Schedule regular air quality testing
             """
         elif air_quality_status == 'Moderate':
@@ -1593,7 +1597,7 @@ def export_greenhouse_report():
             <b>Air Quality - Good:</b><br/>
             • Maintain current ventilation practices<br/>
             • Continue routine equipment inspections<br/>
-            • Keep gas sensors calibrated (replace every 2-3 years)<br/>
+            • Keep gas sensors calibrated (replace every 2-3 years)
             • Ensure adequate fresh air exchange (0.5-1.5 air changes/minute)
             """
         
@@ -1890,7 +1894,7 @@ def export_greenhouse_report():
         buffer.seek(0)
         
         # Generate filename
-        filename = f"EcoView_Report_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pdf"
+        filename = f"EcoView_Report_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_SaterdayTesting.pdf"
         
         return send_file(
             buffer,

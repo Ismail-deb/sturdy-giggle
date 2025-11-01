@@ -142,7 +142,13 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final beigeBackground = isDarkMode 
+        ? theme.scaffoldBackgroundColor // Keep dark theme unchanged
+        : const Color(0xFFF5E6D3); // Warm beige for light theme
+    
     return Scaffold(
+      backgroundColor: beigeBackground,
       appBar: AppBar(
         title: Text('${widget.sensorType} Analysis'),
         actions: [
@@ -164,13 +170,20 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     if (analysis == null) return const Center(child: Text('No data available'));
     
     final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
     final statusColor = _getStatusColor(analysis!.status);
+    
+    // Custom card color for light theme - soft cream that complements beige
+    final cardColor = isDarkMode 
+        ? theme.colorScheme.surface // Keep dark theme unchanged
+        : const Color(0xFFFFFAF0); // Soft cream/ivory color
     
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         // --- REVAMPED: Current Value Card ---
         Card(
+          color: cardColor,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -243,6 +256,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
         
         // --- REVAMPED: Historical Data Card ---
         Card(
+          color: cardColor,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -281,6 +295,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
         
         // --- REVAMPED: AI Analysis Card ---
         Card(
+          color: cardColor,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -345,6 +360,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
         
         // --- REVAMPED: Recommendations Card ---
         Card(
+          color: cardColor,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(

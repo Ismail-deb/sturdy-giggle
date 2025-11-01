@@ -216,104 +216,226 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AIRecommendationScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.psychology),
-                      label: const Text('AI Recommendations'),
-                    ),
-                    const SizedBox(width: 16),
-                    OutlinedButton.icon(
-                      onPressed: _refreshData,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Refresh'),
-                    ),
-                    const SizedBox(width: 16),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        try {
-                          final path = await ApiService.exportReport();
-                          if (!mounted) return;
-                          final msg = path == 'opened-in-browser'
-                              ? 'Report opened in a new tab'
-                              : 'Report saved to: $path';
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(msg)),
-                          );
-                        } catch (e) {
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Export failed: $e')),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.picture_as_pdf),
-                      label: const Text('Export Report'),
-                    ),
-                    const SizedBox(width: 8),
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.tune),
-                      tooltip: 'Settings',
-                      onSelected: (value) {
-                        if (value == 'toggle_alt_units') {
-                          _toggleAltitudeUnits();
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem<String>(
-                          value: 'toggle_alt_units',
-                          child: Row(
+                // Responsive button layout
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isMobile = constraints.maxWidth < 600;
+                    
+                    if (isMobile) {
+                      // Mobile layout: Two rows
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // First row: AI Recommendations and Export Report
+                          Row(
                             children: [
-                              const Icon(Icons.straighten, size: 18),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const AIRecommendationScreen(),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    minimumSize: const Size(0, 48),
+                                  ),
+                                  icon: const Icon(Icons.psychology, size: 20),
+                                  label: const Text(
+                                    'AI Recommendations',
+                                    style: TextStyle(fontSize: 13),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
                               const SizedBox(width: 8),
-                              Text('Altitude units: ${_useFeet ? 'ft' : 'm'}'),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () async {
+                                    try {
+                                      final path = await ApiService.exportReport();
+                                      if (!mounted) return;
+                                      final msg = path == 'opened-in-browser'
+                                          ? 'Report opened in a new tab'
+                                          : 'Report saved to: $path';
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text(msg)),
+                                      );
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Export failed: $e')),
+                                      );
+                                    }
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    minimumSize: const Size(0, 48),
+                                  ),
+                                  icon: const Icon(Icons.picture_as_pdf, size: 20),
+                                  label: const Text(
+                                    'Export Report',
+                                    style: TextStyle(fontSize: 13),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isApiConnected
-                            ? Colors.green.withOpacity(0.1)
-                            : Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isApiConnected ? Colors.green : Colors.red,
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isApiConnected ? Icons.cloud_done : Icons.cloud_off,
-                            size: 16,
-                            color: isApiConnected ? Colors.green : Colors.red,
+                          const SizedBox(height: 12),
+                          // Second row: Export, Refresh, and Connection status (no popup on mobile)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _refreshData,
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    minimumSize: const Size(0, 48),
+                                  ),
+                                  icon: const Icon(Icons.refresh, size: 20),
+                                  label: const Text(
+                                    'Refresh',
+                                    style: TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Removed duplicate Export Report button on mobile second row
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isApiConnected
+                                      ? Colors.green.withOpacity(0.1)
+                                      : Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isApiConnected ? Icons.cloud_done : Icons.cloud_off,
+                                      size: 16,
+                                      color: isApiConnected ? Colors.green : Colors.red,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      isApiConnected ? 'Connected' : 'Offline',
+                                      style: TextStyle(
+                                        color: isApiConnected ? Colors.green : Colors.red,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            isApiConnected ? 'Connected' : 'Disconnected',
-                            style: TextStyle(
-                              color: isApiConnected ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
+                        ],
+                      );
+                    } else {
+                      // Desktop layout: Single row
+                      return Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AIRecommendationScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.psychology),
+                            label: const Text('AI Recommendations'),
+                          ),
+                          const SizedBox(width: 16),
+                          OutlinedButton.icon(
+                            onPressed: _refreshData,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Refresh'),
+                          ),
+                          const SizedBox(width: 16),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              try {
+                                final path = await ApiService.exportReport();
+                                if (!mounted) return;
+                                final msg = path == 'opened-in-browser'
+                                    ? 'Report opened in a new tab'
+                                    : 'Report saved to: $path';
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(msg)),
+                                );
+                              } catch (e) {
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Export failed: $e')),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.picture_as_pdf),
+                            label: const Text('Export Report'),
+                          ),
+                          const SizedBox(width: 8),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.tune),
+                            tooltip: 'Settings',
+                            onSelected: (value) {
+                              if (value == 'toggle_alt_units') {
+                                _toggleAltitudeUnits();
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem<String>(
+                                value: 'toggle_alt_units',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.straighten, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text('Altitude units: ${_useFeet ? 'ft' : 'm'}'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isApiConnected
+                                  ? Colors.green.withOpacity(0.1)
+                                  : Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isApiConnected ? Icons.cloud_done : Icons.cloud_off,
+                                  size: 16,
+                                  color: isApiConnected ? Colors.green : Colors.red,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isApiConnected ? 'Connected' : 'Offline',
+                                  style: TextStyle(
+                                    color: isApiConnected ? Colors.green : Colors.red,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                  ],
+                      );
+                    }
+                  },
                 ),
                 const SizedBox(height: 16),
               ],
@@ -703,12 +825,12 @@ class _BannerHero extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
                       child: Image.asset(
-                        'assets/app icon.png',
+                        'assets/app_icon.png',
                         width: width >= 1200 ? 110 : (width >= 800 ? 90 : 80),
                         height: width >= 1200 ? 110 : (width >= 800 ? 90 : 80),
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stack) {
-                          // Fallback to eco icon if app icon.png is missing
+                          // Fallback to eco icon if app_icon.png is missing
                           return Container(
                             width: width >= 1200 ? 110 : (width >= 800 ? 90 : 80),
                             height: width >= 1200 ? 110 : (width >= 800 ? 90 : 80),

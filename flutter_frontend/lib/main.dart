@@ -15,7 +15,7 @@ class AppColors {
   // Light Theme Colors (Darker Grey)
   // Updated to Natural Earth (Soil) palette
   static const Color lightBackground = Color(0xFFF3EEE6);      // Warm beige/earth
-  static const Color lightCard = Color(0xFFFAF4EC);            // Softer warm card surface
+  static const Color lightCard = Color(0xFFFFFAF0);            // Soft cream/ivory (updated for better contrast)
   static const Color lightPrimary = Color(0xFF6B4F3A);         // Soil brown
   static const Color lightSecondary = Color(0xFF8A9A5B);       // Olive green accent
   static const Color lightText = Color(0xFF3E2E20);            // Deep brown text

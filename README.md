@@ -102,6 +102,29 @@ What the backend does:
 
 See `python_backend/THRESHOLDS.md` for the exact status bands used by the backend.
 
+### Test Backend: "Saterday testing.py" (isolated)
+
+For A/B testing or validating new Oracle APEX data without touching production, the repository includes an isolated backend at `python_backend/Saterday testing.py`.
+
+- Purpose: points to the Saturday/APEX testing URL by default and mirrors the production routes and PDF export logic, so you can test end-to-end without changing `app.py`.
+- Isolation: it runs as a separate Python process; it does not import or modify `app.py`, and nothing in `app.py` depends on it.
+- Default port: 5000 (same as `app.py`). Don’t run both at the same time on the same machine unless you change one port.
+- Default APEX URL: `https://oracleapex.com/ords/at2/greenhouse/sensor` (override with `ORACLE_APEX_URL` in `.env` if needed).
+
+Run the testing backend:
+
+```powershell
+cd python_backend
+# (optional) activate the same venv as production backend
+.venv\Scripts\Activate.ps1
+python "Saterday testing.py"
+```
+
+Notes:
+- Because the testing backend uses its own file and process, stopping it has no impact on the main `app.py` server.
+- If you need both to run simultaneously, start one of them on a different port (e.g., `5001`).
+  You can do this by editing the last line in the file to `app.run(host='0.0.0.0', port=5001, debug=True)`.
+
 ## Frontend (Flutter) — Setup and Run
 
 1) Install dependencies and run
@@ -196,7 +219,7 @@ Below are representative visuals. You can replace these with your own captures i
 
 - App icon (banner style)
 
-  ![EcoView Icon](flutter_frontend/assets/app%20icon.png)
+  ![EcoView Icon](flutter_frontend/assets/app_icon.png)
 
 - Dashboard (placeholder)
 

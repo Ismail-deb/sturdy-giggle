@@ -15,6 +15,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoading = false;
   String? _statusMessage;
   bool _isSuccess = false;
+  bool _useFeet = false; // Measurement setting for altitude units
 
   @override
   void initState() {
@@ -36,6 +37,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _serverIpController.text = ip;
       });
     }
+    // Load measurement settings
+    setState(() {
+      _useFeet = prefs.getBool('altitude_use_feet') ?? false;
+    });
   }
 
   Future<void> _saveServerIP() async {
@@ -100,6 +105,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
               key: _formKey,
               child: ListView(
                 children: [
+                  // Measurement Settings
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.straighten,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Measurement Settings',
+                                style: theme.textTheme.titleLarge,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Altitude units'),
+                            subtitle: Text(_useFeet ? 'feet (ft)' : 'meters (m)'),
+                            value: _useFeet,
+                            onChanged: (val) async {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setBool('altitude_use_feet', val);
+                              setState(() {
+                                _useFeet = val;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Altitude units set to: ' + (val ? 'feet (ft)' : 'meters (m)')),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),

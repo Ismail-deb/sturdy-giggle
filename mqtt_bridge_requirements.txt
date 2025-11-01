@@ -1,0 +1,4 @@
+# MQTT to Oracle APEX Bridge - Dependencies
+
+paho-mqtt==1.6.1
+requests==2.31.0
