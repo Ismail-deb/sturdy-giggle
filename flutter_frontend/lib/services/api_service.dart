@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:universal_html/html.dart' as html;
+import 'package:file_saver/file_saver.dart';
 import 'server_discovery.dart';
 
 class ApiService {
@@ -207,6 +210,55 @@ class ApiService {
       debugPrint('Error fetching alerts: $e');
       rethrow;
     }
+  }
+
+  /// Export greenhouse report as PDF.
+  /// - Web: opens the report in a new tab (browser handles download).
+  /// - Desktop (Windows/macOS/Linux): prompts for a location using a Save As dialog.
+  /// - Mobile: saves to app documents/Downloads and returns the saved path.
+  static Future<String> exportReport({String? suggestedName}) async {
+    await _ensureInitialized();
+
+    final url = Uri.parse('$_baseUrl/export-report');
+    final String filename = suggestedName ??
+        'EcoView_Report_${DateTime.now().toIso8601String().replaceAll(':', '-')}.pdf';
+
+    if (kIsWeb) {
+      // For web, just open the link in a new tab and let the browser handle it
+      html.window.open(url.toString(), '_blank');
+      return 'opened-in-browser';
+    }
+
+    // Native platforms: fetch bytes
+    final res = await http.get(url);
+    if (res.statusCode != 200) {
+      throw Exception('Failed to export report: HTTP ${res.statusCode}');
+    }
+
+    // Desktop: show Save As dialog via file_saver
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      final savedPath = await FileSaver.instance.saveFile(
+        name: filename.replaceAll('.pdf', ''),
+        bytes: res.bodyBytes,
+        ext: 'pdf',
+        mimeType: MimeType.pdf,
+      );
+      // savedPath may be empty on cancel
+      return savedPath.toString();
+    }
+
+    // Mobile: Prefer Downloads if available, else application documents
+    Directory? downloadsDir;
+    try {
+      downloadsDir = await getDownloadsDirectory();
+    } catch (_) {
+      downloadsDir = null;
+    }
+    final Directory baseDir = downloadsDir ?? await getApplicationDocumentsDirectory();
+    final String path = '${baseDir.path}/$filename';
+    final file = File(path);
+    await file.writeAsBytes(res.bodyBytes);
+    return path;
   }
   
   /// Get detailed sensor analysis with AI insights for a specific sensor type

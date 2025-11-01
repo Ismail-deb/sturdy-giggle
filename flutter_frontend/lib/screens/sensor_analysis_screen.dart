@@ -515,7 +515,8 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
       return const Text("No analysis data to generate recommendations.");
     }
 
-    switch (widget.sensorType.toLowerCase()) {
+    final type = widget.sensorType.toLowerCase();
+    switch (type) {
       case 'temperature':
         if (currentAnalysis.status.toLowerCase() == 'optimal') {
           recommendation = 'Current temperature is optimal for plant growth. Continue maintaining current conditions.';
@@ -547,16 +548,86 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
               : 'Humidity is too low! Increase humidification to prevent plant stress.';
         }
         break;
-        
-      case 'co level':
-        if ((currentAnalysis.currentValue as num) < 400) {
-          recommendation = 'CO levels are below atmospheric average. Check ventilation and consider CO supplementation.';
-        } else if ((currentAnalysis.currentValue as num) < 800) {
-          recommendation = 'CO levels are within normal range. Consider supplementation during daylight hours for faster growth.';
-        } else if ((currentAnalysis.currentValue as num) < 1500) {
-          recommendation = 'CO levels are optimal for enhanced plant growth. Continue current management.';
-        } else {
-          recommendation = 'CO levels are higher than optimal. Check ventilation and adjust supplementation.';
+
+      // Air Quality (MQ135)
+      case 'air_quality':
+      case 'air quality':
+      case 'mq135':
+        switch (currentAnalysis.status.toLowerCase()) {
+          case 'good':
+            recommendation = 'Air quality is good. Keep ventilation operating normally to maintain fresh air exchange.';
+            break;
+          case 'moderate':
+            recommendation = 'Air quality is moderate. Increase ventilation, inspect for pollutant sources, and ensure fans/filters are clean.';
+            break;
+          case 'poor':
+          default:
+            recommendation = 'Air quality is poor! Immediately increase ventilation, check fans/filters, and investigate sources (e.g., combustion, chemicals). Limit human occupancy until levels improve.';
+        }
+        break;
+
+      // Flammable Gas / Smoke (MQ2)
+      case 'smoke':
+      case 'flammable_gas':
+      case 'flammable gas':
+      case 'mq2':
+        switch (currentAnalysis.status.toLowerCase()) {
+          case 'safe':
+            recommendation = 'No dangerous levels detected. Maintain ventilation and routine leak checks.';
+            break;
+          case 'elevated':
+            recommendation = 'Flammable gas levels are elevated. Improve ventilation, check for leaks, and restrict ignition sources until cleared.';
+            break;
+          case 'high':
+          default:
+            recommendation = 'DANGER: Flammable gas at high levels! Evacuate area, shut off gas/compression sources, eliminate ignition sources, and investigate immediately.';
+        }
+        break;
+
+      // Carbon Monoxide (MQ7)
+      case 'co':
+      case 'carbon monoxide':
+      case 'mq7':
+        switch (currentAnalysis.status.toLowerCase()) {
+          case 'safe':
+            recommendation = 'CO levels are safe. Ensure heating equipment is serviced and detectors are functioning.';
+            break;
+          case 'elevated':
+            recommendation = 'CO levels are elevated. Increase ventilation and inspect combustion appliances and flues immediately.';
+            break;
+          case 'high':
+          default:
+            recommendation = 'DANGER: High CO! Evacuate, shut down combustion sources, ventilate aggressively, and seek assistance. Treat exposure symptoms (headache, dizziness) urgently.';
+        }
+        break;
+
+      // Altitude
+      case 'altitude':
+        switch (currentAnalysis.status.toLowerCase()) {
+          case 'low':
+            recommendation = 'Altitude is low (< 500m). Standard greenhouse practices apply. Monitor pressure trends for weather changes.';
+            break;
+          case 'normal':
+            recommendation = 'Altitude is in the normal range (500-1500m). Monitor how elevation affects temperature, humidity, and growing conditions.';
+            break;
+          case 'high':
+          default:
+            recommendation = 'Altitude is high (> 1500m). Be aware of reduced air pressure, increased UV exposure, and temperature swings. Adjust ventilation and shading accordingly.';
+        }
+        break;
+
+      // Pressure
+      case 'pressure':
+        switch (currentAnalysis.status.toLowerCase()) {
+          case 'low':
+            recommendation = 'Pressure is low (< 990 hPa). This often indicates stormy or unstable weather. Check ventilation and prepare for possible humidity spikes.';
+            break;
+          case 'normal':
+            recommendation = 'Pressure is normal (990-1030 hPa). Continue monitoring for weather trends that may affect greenhouse conditions.';
+            break;
+          case 'high':
+          default:
+            recommendation = 'Pressure is high (> 1030 hPa). This typically indicates clear, stable weather. Monitor temperature for possible heat buildup during sunny periods.';
         }
         break;
         

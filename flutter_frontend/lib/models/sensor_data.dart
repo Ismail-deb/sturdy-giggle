@@ -243,8 +243,27 @@ class SensorData {
 
   // Helper method to determine status of pressure
   String getPressureStatus() {
-    // For pressure, typically just reporting the reading rather than a status
-    return 'Stable';
+    // Simple barometric ranges (hPa)
+    // Low: < 990, Normal: 990-1030, High: > 1030
+    if (pressure < 990) {
+      return 'Low';
+    } else if (pressure > 1030) {
+      return 'High';
+    } else {
+      return 'Normal';
+    }
+  }
+
+  // Helper method to determine status of altitude (in meters)
+  String getAltitudeStatus() {
+    // General terrain categories (m): Low < 500, Normal 500-1500, High > 1500
+    if (altitude < 500) {
+      return 'Low';
+    } else if (altitude > 1500) {
+      return 'High';
+    } else {
+      return 'Normal';
+    }
   }
 
   // Helper method to determine status of soil moisture

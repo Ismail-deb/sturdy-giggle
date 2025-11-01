@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/sensor_data.dart';
 import '../services/api_service.dart';
 import '../widgets/sensor_card.dart';
@@ -21,12 +22,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const int _defaultPollIntervalSeconds = 2;
   String errorMessage = '';
   Timer? _timer;
+  bool _useFeet = false;
 
   @override
   void initState() {
     super.initState();
     _checkApiConnection();
     _loadSensorData();
+    _loadPrefs();
     _timer = Timer.periodic(
       const Duration(seconds: _defaultPollIntervalSeconds),
       (timer) => _pollSensorData(),
@@ -37,6 +40,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _useFeet = prefs.getBool('altitude_use_feet') ?? false;
+    });
+  }
+
+  Future<void> _toggleAltitudeUnits() async {
+    final prefs = await SharedPreferences.getInstance();
+    final next = !_useFeet;
+    await prefs.setBool('altitude_use_feet', next);
+    if (!mounted) return;
+    setState(() {
+      _useFeet = next;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Altitude units: ${_useFeet ? 'feet (ft)' : 'meters (m)'}')),
+    );
   }
 
   Future<void> _checkApiConnection() async {
@@ -131,13 +155,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     switch (status.toLowerCase()) {
       case 'optimal':
       case 'normal':
+      case 'good':
+      case 'safe':
         return Colors.green;
       case 'high':
       case 'low':
+      case 'moderate':
+      case 'elevated':
         return Colors.orange;
       case 'critical':
       case 'very high':
       case 'very low':
+      case 'poor':
+      case 'danger':
         return Colors.red;
       case 'detected':
         return Colors.red;
@@ -205,6 +235,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       onPressed: _refreshData,
                       icon: const Icon(Icons.refresh),
                       label: const Text('Refresh'),
+                    ),
+                    const SizedBox(width: 16),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        try {
+                          final path = await ApiService.exportReport();
+                          if (!mounted) return;
+                          final msg = path == 'opened-in-browser'
+                              ? 'Report opened in a new tab'
+                              : 'Report saved to: $path';
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(msg)),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Export failed: $e')),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('Export Report'),
+                    ),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.tune),
+                      tooltip: 'Settings',
+                      onSelected: (value) {
+                        if (value == 'toggle_alt_units') {
+                          _toggleAltitudeUnits();
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem<String>(
+                          value: 'toggle_alt_units',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.straighten, size: 18),
+                              const SizedBox(width: 8),
+                              Text('Altitude units: ${_useFeet ? 'ft' : 'm'}'),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const Spacer(),
                     Container(
@@ -431,6 +505,125 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     );
                   },
                 ),
+
+                // Air Quality (MQ135)
+                SensorCard(
+                  icon: Icons.air,
+                  iconColor: Colors.teal,
+                  title: 'Air Quality',
+                  value: sensorData!.mq135Drop.toStringAsFixed(0),
+                  unit: 'ppm',
+                  status: sensorData!.getAirQualityStatus(),
+                  statusColor: _getSensorStatusColor(sensorData!.getAirQualityStatus()),
+                  progress: _calculateProgress(sensorData!.mq135Drop, 0, 1000),
+                  progressColor: Colors.teal,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SensorAnalysisScreen(
+                          sensorType: 'air_quality',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                // Flammable Gas (MQ2)
+                SensorCard(
+                  icon: Icons.smoke_free,
+                  iconColor: Colors.deepOrange,
+                  title: 'Flammable Gas',
+                  value: sensorData!.mq2Drop.toStringAsFixed(0),
+                  unit: 'ppm',
+                  status: sensorData!.getSmokeStatus(),
+                  statusColor: _getSensorStatusColor(sensorData!.getSmokeStatus()),
+                  progress: sensorData!.getMQ2DropProgressValue(),
+                  progressColor: Colors.deepOrange,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SensorAnalysisScreen(
+                          sensorType: 'smoke',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                // Carbon Monoxide (MQ7)
+                SensorCard(
+                  icon: Icons.warning,
+                  iconColor: Colors.deepPurple,
+                  title: 'Carbon Monoxide',
+                  value: sensorData!.mq7Drop.toStringAsFixed(0),
+                  unit: 'ppm',
+                  status: sensorData!.getCOStatus(),
+                  statusColor: _getSensorStatusColor(sensorData!.getCOStatus()),
+                  progress: sensorData!.getMQ7DropProgressValue(),
+                  progressColor: Colors.deepPurple,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SensorAnalysisScreen(
+                          sensorType: 'co',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                // Pressure
+                SensorCard(
+                  icon: Icons.compress,
+                  iconColor: Colors.indigo,
+                  title: 'Pressure',
+                  value: sensorData!.pressure.toStringAsFixed(1),
+                  unit: 'hPa',
+                  status: sensorData!.getPressureStatus(),
+                  statusColor: _getSensorStatusColor(sensorData!.getPressureStatus()),
+                  progress: _calculateProgress(sensorData!.pressure, 950, 1050),
+                  progressColor: Colors.indigo,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SensorAnalysisScreen(
+                          sensorType: 'pressure',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                // Altitude
+                SensorCard(
+                  icon: Icons.landscape,
+                  iconColor: Colors.green,
+                  title: 'Altitude',
+                  value: (_useFeet
+                          ? (sensorData!.altitude * 3.28084)
+                          : sensorData!.altitude)
+                      .toStringAsFixed(1),
+                  unit: _useFeet ? 'ft' : 'm',
+                  status: sensorData!.getAltitudeStatus(),
+                  statusColor: _getSensorStatusColor(sensorData!.getAltitudeStatus()),
+                  // Progress is illustrative; normalize within 0-3000m range
+                  progress: _calculateProgress(sensorData!.altitude, 0, 3000),
+                  progressColor: Colors.green,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SensorAnalysisScreen(
+                          sensorType: 'altitude',
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ]),
             ),
           ),
@@ -487,7 +680,7 @@ class _BannerHero extends StatelessWidget {
             Container(
               color: isDark
                   ? Colors.black.withOpacity(0.30)
-                  : Colors.white.withOpacity(0.15),
+                  : scheme.surface.withOpacity(0.22),
             ),
             // Decorative content
             Padding(

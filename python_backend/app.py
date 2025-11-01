@@ -19,7 +19,7 @@ import traceback
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 import io
@@ -622,9 +622,9 @@ def get_sensor_analysis(sensor_type):
         key = 'humidity'
         unit = '%'
         status_fn = _get_humidity_status
-    elif 'co2' in st or 'co₂' in st or 'air quality' in st.lower() or 'mq135' in st:
+    elif 'co2' in st or 'co₂' in st or 'air quality' in st.lower() or 'mq135' in st or 'air_quality' in st:
         # Check if they want the drop value or the co2_level estimate
-        if 'mq135' in st or 'air quality' in st.lower():
+        if 'mq135' in st or 'air quality' in st.lower() or 'air_quality' in st:
             key = 'mq135_drop'  # Direct from APEX (already in PPM)
             unit = 'ppm'
             # MQ135 thresholds: >500 = poor, >200 = degraded, ≤200 = good
@@ -667,12 +667,19 @@ def get_sensor_analysis(sensor_type):
     elif 'altitude' in st:
         key = 'altitude'
         unit = 'm'
-        status_fn = lambda v: f"{v:.1f}m"  # Just return the value as status
+        # Altitude status: Low < 500m, Normal 500-1500m, High > 1500m
+        status_fn = lambda v: "Low" if v < 500 else ("High" if v > 1500 else "Normal")
     else:
-        # default fallback
-        key = 'temperature'
-        unit = '°C'
-        status_fn = _get_temperature_status
+        # default fallback - try to match the sensor type directly as a key
+        key = sensor_type.lower().replace(' ', '_')
+        unit = ''
+        status_fn = lambda v: "Unknown"
+        # If the key doesn't exist, fall back to temperature
+        if key not in ['temperature', 'humidity', 'light', 'soil_moisture', 'pressure', 'altitude', 
+                       'co2_level', 'mq135_drop', 'mq2_drop', 'mq7_drop', 'flame_detected']:
+            key = 'temperature'
+            unit = '°C'
+            status_fn = _get_temperature_status
 
     # Compute current value
     current_value = extract_value_for_sensor(current_data, key)
@@ -773,14 +780,26 @@ def get_sensor_ai_only(sensor_type):
             current_value = sensor_data.get('light', 0)
             unit = 'lux'
             status = _get_light_status(current_value)
-        elif 'co2' in st or 'air' in st or 'mq135' in st:
+        elif 'co2' in st or 'air' in st or 'mq135' in st or 'air_quality' in st:
             current_value = sensor_data.get('mq135_drop', 0)
             unit = 'ppm'
             status = "Good" if current_value <= 200 else ("Poor" if current_value > 500 else "Moderate")
+        elif 'mq2' in st or 'smoke' in st or 'flammable' in st:
+            current_value = sensor_data.get('mq2_drop', 0)
+            unit = 'ppm'
+            status = "Safe" if current_value <= 300 else ("High" if current_value > 750 else "Elevated")
+        elif 'mq7' in st or ('co' in st and 'co2' not in st) or 'carbon monoxide' in st:
+            current_value = sensor_data.get('mq7_drop', 0)
+            unit = 'ppm'
+            status = "Safe" if current_value <= 300 else ("High" if current_value > 750 else "Elevated")
+        elif 'altitude' in st:
+            current_value = sensor_data.get('altitude', 0)
+            unit = 'm'
+            status = "Low" if current_value < 500 else ("High" if current_value > 1500 else "Normal")
         elif 'pressure' in st:
             current_value = sensor_data.get('pressure', 0)
             unit = 'hPa'
-            status = "Normal"
+            status = "Normal" if 990 <= current_value <= 1030 else ("Low" if current_value < 990 else "High")
         else:
             current_value = 0
             unit = ''
@@ -795,8 +814,14 @@ def get_sensor_ai_only(sensor_type):
                 val = r.get('humidity', 0)
             elif 'light' in st:
                 val = r.get('light', 0)
-            elif 'co2' in st or 'air' in st:
+            elif 'co2' in st or 'air' in st or 'mq135' in st or 'air_quality' in st:
                 val = r.get('mq135_drop', 0)
+            elif 'mq2' in st or 'smoke' in st or 'flammable' in st:
+                val = r.get('mq2_drop', 0)
+            elif 'mq7' in st or ('co' in st and 'co2' not in st) or 'carbon monoxide' in st:
+                val = r.get('mq7_drop', 0)
+            elif 'altitude' in st:
+                val = r.get('altitude', 0)
             elif 'pressure' in st:
                 val = r.get('pressure', 0)
             else:
@@ -1086,6 +1111,21 @@ def export_greenhouse_report():
                 'value': sensor_data.get('light', 0),
                 'status': _get_light_status(sensor_data.get('light', 0)),
                 'unit': 'lux'
+            },
+            'co2': {
+                'value': sensor_data.get('co2_level', 0),
+                'status': _get_co2_status(sensor_data.get('co2_level', 0)),
+                'unit': 'ppm'
+            },
+            'soil_moisture': {
+                'value': sensor_data.get('soil_moisture', 0),
+                'status': _get_soil_moisture_status(sensor_data.get('soil_moisture', 0)),
+                'unit': '%'
+            },
+            'pressure': {
+                'value': sensor_data.get('pressure', 0),
+                'status': "Normal" if 990 <= sensor_data.get('pressure', 0) <= 1030 else ("Low" if sensor_data.get('pressure', 0) < 990 else "High"),
+                'unit': 'hPa'
             }
         }
         
@@ -1098,145 +1138,737 @@ def export_greenhouse_report():
         
         # Generate PDF
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=letter, 
+            rightMargin=50, 
+            leftMargin=50, 
+            topMargin=50, 
+            bottomMargin=50
+        )
         
         # Container for PDF elements
         elements = []
         styles = getSampleStyleSheet()
         
+        # Define color palette (use soil-toned light surfaces)
+        primary_green = colors.HexColor('#2D5016')  # Dark green
+        accent_green = colors.HexColor('#4CAF50')   # Light green
+        accent_blue = colors.HexColor('#2196F3')    # Blue
+        text_dark = colors.HexColor('#333333')      # Dark gray
+        bg_soil = colors.HexColor('#F3EEE6')        # Soil light background
+        card_soil = colors.HexColor('#FAF4EC')      # Soil card surface
+        
         # Custom styles
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=24,
-            textColor=colors.HexColor('#4CAF50'),
-            spaceAfter=30,
-            alignment=TA_CENTER
+            fontSize=28,
+            textColor=primary_green,
+            spaceAfter=8,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Normal'],
+            fontSize=14,
+            textColor=text_dark,
+            spaceAfter=20,
+            alignment=TA_CENTER,
+            fontName='Helvetica'
         )
         
         heading_style = ParagraphStyle(
             'CustomHeading',
             parent=styles['Heading2'],
             fontSize=16,
-            textColor=colors.HexColor('#2196F3'),
+            textColor=primary_green,
             spaceAfter=12,
-            spaceBefore=12
+            spaceBefore=20,
+            fontName='Helvetica-Bold',
+            borderColor=accent_green,
+            borderWidth=0,
+            borderPadding=8
         )
         
+        section_heading_style = ParagraphStyle(
+            'SectionHeading',
+            parent=styles['Heading3'],
+            fontSize=14,
+            textColor=primary_green,
+            spaceAfter=10,
+            spaceBefore=15,
+            fontName='Helvetica-Bold'
+        )
+
+        # Styles to avoid overlap for large font content
+        health_style = ParagraphStyle(
+            'HealthStyle',
+            parent=styles['Normal'],
+            alignment=TA_CENTER,
+            leading=56,        # accommodate 48pt number comfortably
+            spaceAfter=12,
+        )
+        alert_cell_style = ParagraphStyle(
+            'AlertCell',
+            parent=styles['Normal'],
+            alignment=TA_CENTER,
+            leading=26,        # accommodate 24pt numbers in cells
+        )
+        
+        # Header with logo and branding
+        icon_path = os.path.join(os.path.dirname(__file__), 'app_icon.png')
+        if os.path.exists(icon_path):
+            try:
+                logo = Image(icon_path, width=50, height=50)
+                # Create header with logo and title side by side
+                logo_title_data = [[
+                    logo,
+                    Paragraph("<b>EcoView</b><br/><font size='8'>Smart Greenhouse Monitoring</font>", 
+                             ParagraphStyle('LogoText', parent=styles['Normal'], fontSize=14, 
+                                          textColor=primary_green, leftIndent=10))
+                ]]
+                logo_table = Table(logo_title_data, colWidths=[60, 200])
+                logo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                elements.append(logo_table)
+                elements.append(Spacer(1, 15))
+            except Exception as e:
+                logger.warning(f"Could not load app icon: {e}")
+        
         # Title
-        elements.append(Paragraph("🌿 EcoView Greenhouse Report", title_style))
-        elements.append(Spacer(1, 12))
+        elements.append(Paragraph("Greenhouse Environmental Report", title_style))
+        elements.append(Paragraph("Comprehensive Analysis & Recommendations", subtitle_style))
         
-        # Report metadata
+        # Report metadata banner
         report_date = datetime.now().strftime('%B %d, %Y at %I:%M %p')
-        elements.append(Paragraph(f"<b>Generated:</b> {report_date}", styles['Normal']))
-        elements.append(Paragraph(f"<b>System:</b> EcoView Greenhouse Monitoring", styles['Normal']))
-        elements.append(Spacer(1, 20))
-        
-        # Health Score
-        health_score = _calculate_health_score(all_analysis)
-        elements.append(Paragraph("Overall Greenhouse Health", heading_style))
-        health_color = colors.green if health_score >= 80 else (colors.orange if health_score >= 60 else colors.red)
-        health_data = [[f"{health_score}/100", "EXCELLENT" if health_score >= 80 else ("GOOD" if health_score >= 60 else "NEEDS ATTENTION")]]
-        health_table = Table(health_data, colWidths=[2*inch, 3*inch])
-        health_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, 0), health_color),
-            ('TEXTCOLOR', (0, 0), (0, 0), colors.whitesmoke),
+        metadata_data = [[
+            Paragraph(f"<b>Report Date:</b><br/>{report_date}", styles['Normal']),
+            Paragraph(f"<b>Report ID:</b><br/>{datetime.now().strftime('%Y%m%d-%H%M%S')}", styles['Normal']),
+            Paragraph(f"<b>Data Source:</b><br/>Oracle APEX", styles['Normal'])
+        ]]
+        metadata_table = Table(metadata_data, colWidths=[2*inch, 2*inch, 2*inch])
+        metadata_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), card_soil),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 14),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey)
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('BOX', (0, 0), (-1, -1), 1, colors.grey),
+            ('LINEBELOW', (0, 0), (-1, -1), 1, colors.white)
         ]))
-        elements.append(health_table)
+        elements.append(metadata_table)
+        elements.append(Spacer(1, 25))
+        
+        # Health Score Card
+        health_score = _calculate_health_score(all_analysis)
+        health_status = "EXCELLENT" if health_score >= 80 else ("GOOD" if health_score >= 60 else "NEEDS ATTENTION")
+        health_color = accent_green if health_score >= 80 else (colors.orange if health_score >= 60 else colors.red)
+        
+        elements.append(Paragraph("Overall Greenhouse Health", heading_style))
+        health_display = f"""
+        <para alignment="center">
+            <font size="48" color="{health_color.hexval()}">{health_score}</font>
+            <font size="24">/100</font><br/>
+            <font size="16" color="{health_color.hexval()}"><b>{health_status}</b></font>
+        </para>
+        """
+        elements.append(Paragraph(health_display, health_style))
         elements.append(Spacer(1, 20))
         
-        # Current Conditions
-        elements.append(Paragraph("📊 Current Sensor Readings", heading_style))
-        sensor_table_data = [['Sensor', 'Value', 'Status', 'Assessment']]
+        # Current Conditions - Enhanced Table
+        elements.append(Paragraph("Current Sensor Readings", heading_style))
         
-        for sensor_name, data in all_analysis.items():
+        sensor_table_data = [['Sensor', 'Current Value', 'Status', 'Assessment']]
+        
+        sensor_display_names = {
+            'temperature': '🌡️ Temperature',
+            'humidity': '💧 Humidity',
+            'soil_moisture': '🌱 Soil Moisture',
+            'light': '☀️ Light Level',
+            'co2': '💨 CO₂ Level',
+            'air_quality': '🌬️ Air Quality (MQ135)',
+            'pressure': '🔽 Pressure'
+        }
+        
+        for sensor_key, data in all_analysis.items():
             status = data['status']
-            status_color = colors.green if status == 'Optimal' else (colors.orange if status in ['Warning', 'Moderate'] else colors.red)
+            # Determine status color and symbol
+            if status in ['Optimal', 'Good', 'Normal', 'Bright', 'Safe']:
+                status_color = accent_green
+                symbol = '✓'
+            elif status in ['Acceptable', 'Moderate', 'Elevated', 'Dim Indoor']:
+                status_color = colors.orange
+                symbol = '⚠'
+            else:
+                status_color = colors.red
+                symbol = '✗'
+            
             sensor_table_data.append([
-                sensor_name.replace('_', ' ').title(),
+                sensor_display_names.get(sensor_key, sensor_key.replace('_', ' ').title()),
                 f"{data['value']:.1f} {data['unit']}",
-                status,
-                '✓' if status == 'Optimal' else '⚠' if status in ['Warning', 'Moderate'] else '✗'
+                Paragraph(f"<font color='{status_color.hexval()}'><b>{status}</b></font>", styles['Normal']),
+                Paragraph(f"<font size='16' color='{status_color.hexval()}'><b>{symbol}</b></font>", styles['Normal'])
             ])
         
-        sensor_table = Table(sensor_table_data, colWidths=[2*inch, 1.5*inch, 1.5*inch, 1*inch])
+        sensor_table = Table(sensor_table_data, colWidths=[2.2*inch, 1.5*inch, 1.5*inch, 0.8*inch])
         sensor_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4CAF50')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('BACKGROUND', (0, 0), (-1, 0), primary_green),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.beige, colors.lightgrey])
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [card_soil, bg_soil])
         ]))
         elements.append(sensor_table)
         elements.append(Spacer(1, 20))
         
-        # AI Recommendations
+        # AI Recommendations Section
         if ai_recommendations:
-            elements.append(Paragraph("🤖 AI-Powered Recommendations", heading_style))
-            for i, rec in enumerate(ai_recommendations[:5], 1):
-                elements.append(Paragraph(f"<b>{i}.</b> {rec}", styles['Normal']))
-                elements.append(Spacer(1, 6))
-        elements.append(Spacer(1, 20))
+            elements.append(Paragraph("AI-Powered Recommendations", heading_style))
+            
+            for i, rec in enumerate(ai_recommendations[:6], 1):
+                rec_text = f"""
+                <para leftIndent="20" spaceBefore="5" spaceAfter="5">
+                    <font color="{accent_blue.hexval()}"><b>{i}.</b></font> {rec}
+                </para>
+                """
+                elements.append(Paragraph(rec_text, styles['Normal']))
+            
+            elements.append(Spacer(1, 20))
         
-        # Alert Summary
-        elements.append(Paragraph("⚠️ Alert Summary", heading_style))
+        # Alert Summary Section
+        elements.append(Paragraph("Alert Summary", heading_style))
         alert_summary = _generate_alert_summary(sensor_data)
         critical_count = alert_summary.get('critical_count', 0)
         warning_count = alert_summary.get('warning_count', 0)
         
-        if critical_count > 0 or warning_count > 0:
-            elements.append(Paragraph(f"<b>Critical Alerts:</b> {critical_count}", styles['Normal']))
-            elements.append(Paragraph(f"<b>Warnings:</b> {warning_count}", styles['Normal']))
-            if alert_summary.get('alerts'):
-                for alert in alert_summary['alerts'][:5]:
-                    elements.append(Paragraph(f"• {alert.get('message', 'Unknown alert')}", styles['Normal']))
-                    elements.append(Spacer(1, 4))
-        else:
-            elements.append(Paragraph("✅ No active alerts - All systems operating normally", styles['Normal']))
+        alert_data = [[
+            Paragraph(f"<b>Critical Alerts</b><br/><font size='24' color='red'>{critical_count}</font>", alert_cell_style),
+            Paragraph(f"<b>Warnings</b><br/><font size='24' color='orange'>{warning_count}</font>", alert_cell_style),
+            Paragraph(f"<b>Total Sensors</b><br/><font size='24' color='{primary_green.hexval()}'>7</font>", alert_cell_style)
+        ]]
         
+        alert_table = Table(alert_data, colWidths=[2*inch, 2*inch, 2*inch])
+        alert_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), card_soil),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 15),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+            ('BOX', (0, 0), (-1, -1), 1, colors.grey),
+            ('GRID', (0, 0), (-1, -1), 1, colors.white)
+        ]))
+        elements.append(alert_table)
+        elements.append(Spacer(1, 15))
+        
+        if alert_summary.get('alerts'):
+            elements.append(Paragraph("Active Alerts:", section_heading_style))
+            for alert in alert_summary['alerts'][:8]:
+                level_color = colors.red if alert['level'] == 'CRITICAL' else (colors.orange if alert['level'] == 'WARNING' else colors.blue)
+                alert_text = f"""
+                <para leftIndent="15" spaceBefore="3" spaceAfter="3">
+                    <font color="{level_color.hexval()}"><b>[{alert['level']}]</b></font> 
+                    <b>{alert['type']}:</b> {alert.get('message', 'Unknown alert')}
+                </para>
+                """
+                elements.append(Paragraph(alert_text, styles['Normal']))
+        else:
+            elements.append(Paragraph(
+                "<para alignment='center'><font color='green'>✅ No active alerts - All systems operating normally</font></para>", 
+                styles['Normal']
+            ))
+        
+        elements.append(Spacer(1, 25))
+        
+        # ===== NEW: DETAILED IMPROVEMENT RECOMMENDATIONS =====
+        elements.append(Paragraph("Detailed Improvement Recommendations", heading_style))
+        
+        # Temperature improvements
+        temp_value = all_analysis['temperature']['value']
+        temp_status = all_analysis['temperature']['status']
+        
+        elements.append(Paragraph("🌡️ Temperature Management", section_heading_style))
+        if temp_status == 'Critical':
+            if temp_value < 18:
+                temp_advice = """
+                <b>URGENT - Temperature Too Low:</b><br/>
+                <b>Immediate Actions:</b><br/>
+                • Activate heating systems immediately<br/>
+                • Close vents and seal any drafts<br/>
+                • Use thermal blankets or row covers for sensitive plants<br/>
+                • Check for heating system malfunctions<br/>
+                <br/>
+                <b>Short-term Solutions:</b><br/>
+                • Install supplemental heaters (propane, electric, or oil)<br/>
+                • Use heat mats for seedlings and young plants<br/>
+                • Reduce watering to prevent cold stress<br/>
+                <br/>
+                <b>Long-term Improvements:</b><br/>
+                • Upgrade insulation (bubble wrap on walls, thermal screens)<br/>
+                • Install automated heating controls with thermostats<br/>
+                • Consider geothermal or solar heating systems<br/>
+                • Implement thermal mass (water barrels, concrete blocks) to stabilize temperature
+                """
+            else:
+                temp_advice = """
+                <b>URGENT - Temperature Too High:</b><br/>
+                <b>Immediate Actions:</b><br/>
+                • Open all vents and doors for maximum airflow<br/>
+                • Activate exhaust fans at full capacity<br/>
+                • Deploy shade cloth (30-50% shade) immediately<br/>
+                • Mist plants to cool through evaporation<br/>
+                <br/>
+                <b>Short-term Solutions:</b><br/>
+                • Install evaporative cooling pads<br/>
+                • Use oscillating fans to improve air circulation<br/>
+                • Paint greenhouse exterior with whitewash or shade paint<br/>
+                • Water plants early morning to prevent heat stress<br/>
+                <br/>
+                <b>Long-term Improvements:</b><br/>
+                • Install automated vent openers with temperature sensors<br/>
+                • Upgrade to exhaust fans with variable speed controls<br/>
+                • Consider retractable shade systems<br/>
+                • Install misting or fogging systems for evaporative cooling
+                """
+        elif temp_status == 'Acceptable':
+            if temp_value < 20:
+                temp_advice = """
+                <b>Temperature Slightly Low:</b><br/>
+                • Increase heating gradually by 1-2°C<br/>
+                • Close vents during coldest hours (night/early morning)<br/>
+                • Monitor overnight temperatures closely<br/>
+                • Check heating system efficiency and fuel levels<br/>
+                • Consider installing a min/max thermometer to track extremes
+                """
+            else:
+                temp_advice = """
+                <b>Temperature Slightly High:</b><br/>
+                • Increase ventilation during peak heat hours<br/>
+                • Deploy light shade cloth (20-30%)<br/>
+                • Ensure adequate air circulation with fans<br/>
+                • Water plants adequately to support transpiration cooling<br/>
+                • Monitor for heat stress symptoms (wilting, leaf curling)
+                """
+        else:
+            temp_advice = """
+            <b>Temperature Optimal:</b><br/>
+            • Continue current temperature management practices<br/>
+            • Monitor daily fluctuations (aim for 5-10°C day/night differential)<br/>
+            • Keep heating and cooling systems maintained<br/>
+            • Adjust gradually for different crop stages or seasons
+            """
+        
+        elements.append(Paragraph(temp_advice, styles['Normal']))
+        elements.append(Spacer(1, 15))
+        
+        # Humidity improvements
+        humidity_value = all_analysis['humidity']['value']
+        humidity_status = all_analysis['humidity']['status']
+        
+        elements.append(Paragraph("💧 Humidity Control", section_heading_style))
+        if humidity_value < 45:
+            humidity_advice = """
+            <b>URGENT - Humidity Too Low:</b><br/>
+            <b>Immediate Actions:</b><br/>
+            • Increase watering frequency<br/>
+            • Mist plants 2-3 times daily<br/>
+            • Place water trays near heating sources for evaporation<br/>
+            • Reduce ventilation temporarily<br/>
+            <br/>
+            <b>Short-term Solutions:</b><br/>
+            • Install a portable humidifier<br/>
+            • Use wet burlap or shade cloth to increase humidity<br/>
+            • Group plants together to create microclimates<br/>
+            • Mulch soil to retain moisture<br/>
+            <br/>
+            <b>Long-term Improvements:</b><br/>
+            • Install automated misting/fogging system<br/>
+            • Add evaporative cooling pads<br/>
+            • Improve greenhouse sealing to prevent moisture loss<br/>
+            • Consider hydroponics or aquaponics to increase ambient humidity
+            """
+        elif humidity_value > 80:
+            humidity_advice = """
+            <b>URGENT - Humidity Too High:</b><br/>
+            <b>Immediate Actions:</b><br/>
+            • Increase ventilation immediately (fans + open vents)<br/>
+            • Reduce watering frequency<br/>
+            • Space plants further apart for better airflow<br/>
+            • Remove any standing water<br/>
+            <br/>
+            <b>Short-term Solutions:</b><br/>
+            • Install dehumidifier if available<br/>
+            • Prune dense foliage to improve air circulation<br/>
+            • Water only in the morning (never at night)<br/>
+            • Check for leaks or excess condensation<br/>
+            <br/>
+            <b>Long-term Improvements:</b><br/>
+            • Install circulation fans for continuous air movement<br/>
+            • Upgrade to automated exhaust fans with humidity sensors<br/>
+            • Implement thermal screens to manage condensation<br/>
+            • Ensure proper greenhouse design (slope, gutters for drainage)<br/>
+            • Consider horizontal airflow (HAF) fan systems
+            """
+        elif humidity_value > 70:
+            humidity_advice = """
+            <b>Humidity Slightly High:</b><br/>
+            • Increase ventilation, especially during high-humidity periods<br/>
+            • Run circulation fans continuously<br/>
+            • Monitor for signs of fungal disease (powdery mildew, botrytis)<br/>
+            • Avoid overhead watering; use drip irrigation instead<br/>
+            • Inspect plants regularly for mold or mildew
+            """
+        else:
+            humidity_advice = """
+            <b>Humidity Optimal:</b><br/>
+            • Maintain current ventilation and watering practices<br/>
+            • Continue monitoring for disease pressure<br/>
+            • Adjust humidity for specific crop requirements<br/>
+            • Keep records of humidity patterns for seasonal planning
+            """
+        
+        elements.append(Paragraph(humidity_advice, styles['Normal']))
+        elements.append(Spacer(1, 15))
+        
+        # Air Quality and Gas Sensors
+        air_quality_value = all_analysis['air_quality']['value']
+        air_quality_status = all_analysis['air_quality']['status']
+        
+        elements.append(Paragraph("🌬️ Air Quality & Gas Management", section_heading_style))
+        
+        if air_quality_status == 'Poor':
+            air_advice = """
+            <b>URGENT - Poor Air Quality Detected:</b><br/>
+            <b>Immediate Actions:</b><br/>
+            • Maximize ventilation (open all vents, run exhaust fans)<br/>
+            • Evacuate personnel if CO or flammable gas levels are high<br/>
+            • Check for combustion sources (heaters, generators)<br/>
+            • Inspect for chemical spills or decomposing organic matter<br/>
+            <br/>
+            <b>Investigation Steps:</b><br/>
+            • Test gas heaters and ensure proper venting<br/>
+            • Check for propane/natural gas leaks<br/>
+            • Inspect compost piles or organic fertilizers (ammonia, methane)<br/>
+            • Look for mold or mildew growth<br/>
+            • Verify air filters are clean and functional<br/>
+            <br/>
+            <b>Long-term Solutions:</b><br/>
+            • Install CO and gas detectors with alarms<br/>
+            • Ensure all combustion equipment is properly vented to exterior<br/>
+            • Use electric heating where possible<br/>
+            • Implement air filtration systems<br/>
+            • Schedule regular air quality testing
+            """
+        elif air_quality_status == 'Moderate':
+            air_advice = """
+            <b>Air Quality - Moderate Concern:</b><br/>
+            • Increase fresh air exchange (open vents more frequently)<br/>
+            • Run circulation fans to prevent stagnant air pockets<br/>
+            • Check and clean air filters<br/>
+            • Inspect heating equipment for incomplete combustion<br/>
+            • Monitor for changes; retest in 1-2 hours
+            """
+        else:
+            air_advice = """
+            <b>Air Quality - Good:</b><br/>
+            • Maintain current ventilation practices<br/>
+            • Continue routine equipment inspections<br/>
+            • Keep gas sensors calibrated (replace every 2-3 years)<br/>
+            • Ensure adequate fresh air exchange (0.5-1.5 air changes/minute)
+            """
+        
+        # Add MQ2 and MQ7 specific advice
+        mq2_value = sensor_data.get('mq2_drop', 0)
+        mq7_value = sensor_data.get('mq7_drop', 0)
+        
+        if mq2_value > 750:
+            air_advice += """<br/><br/>
+            <b>⚠️ DANGER - High Flammable Gas Detected (MQ2 > 750 ppm):</b><br/>
+            • EVACUATE IMMEDIATELY<br/>
+            • Shut off gas supply valves<br/>
+            • Eliminate all ignition sources (no smoking, sparks, flames)<br/>
+            • Do not operate electrical switches<br/>
+            • Call emergency services if unable to locate/stop leak<br/>
+            • Ventilate area extensively before re-entry
+            """
+        elif mq2_value > 300:
+            air_advice += """<br/><br/>
+            <b>⚠️ WARNING - Elevated Flammable Gas (MQ2 > 300 ppm):</b><br/>
+            • Check propane tanks, gas lines, and connections for leaks<br/>
+            • Inspect pilot lights and burners on heaters<br/>
+            • Increase ventilation and monitor continuously<br/>
+            • Restrict ignition sources until levels drop
+            """
+        
+        if mq7_value > 750:
+            air_advice += """<br/><br/>
+            <b>⚠️ DANGER - High Carbon Monoxide Detected (MQ7 > 750 ppm):</b><br/>
+            • EVACUATE ALL PERSONNEL IMMEDIATELY<br/>
+            • Shut down all combustion equipment<br/>
+            • Open all doors and vents for maximum ventilation<br/>
+            • Seek medical attention if symptoms present (headache, dizziness, nausea)<br/>
+            • Call emergency services<br/>
+            • Have heating equipment professionally inspected before restart
+            """
+        elif mq7_value > 300:
+            air_advice += """<br/><br/>
+            <b>⚠️ WARNING - Elevated Carbon Monoxide (MQ7 > 300 ppm):</b><br/>
+            • Shut down gas heaters and inspect for incomplete combustion<br/>
+            • Check exhaust flues and chimneys for blockages<br/>
+            • Ensure adequate combustion air supply<br/>
+            • Ventilate area and monitor levels<br/>
+            • Consider installing CO alarms if not present
+            """
+        
+        elements.append(Paragraph(air_advice, styles['Normal']))
         elements.append(Spacer(1, 20))
         
-        # Historical Data Summary
+        # ===== NEW: TROUBLESHOOTING GUIDE =====
+        elements.append(Paragraph("Troubleshooting Guide", heading_style))
+        elements.append(Paragraph(
+            "Common issues and their solutions for optimal greenhouse management:",
+            subtitle_style
+        ))
+        elements.append(Spacer(1, 10))
+        
+        troubleshooting_sections = [
+            {
+                "title": "🌡️ Temperature Won't Stabilize",
+                "symptoms": "Frequent temperature swings, difficulty maintaining target range",
+                "causes": [
+                    "<b>Poor insulation:</b> Heat loss through walls, roof, or foundation",
+                    "<b>Inadequate thermal mass:</b> Lack of heat storage capacity",
+                    "<b>Undersized/oversized equipment:</b> HVAC not matched to greenhouse size",
+                    "<b>Air leaks:</b> Drafts from doors, vents, or structural gaps"
+                ],
+                "solutions": [
+                    "Add insulation: bubble wrap on walls, thermal curtains, weather stripping",
+                    "Install thermal mass: 55-gallon water drums painted black, gravel beds, concrete blocks",
+                    "Upgrade to appropriately sized heating/cooling systems",
+                    "Seal all air leaks with caulk or weatherstripping",
+                    "Use automated controllers with temperature sensors for consistent management"
+                ],
+                "prevention": "Regular maintenance of HVAC systems, annual insulation inspections, proper greenhouse design with adequate thermal mass"
+            },
+            {
+                "title": "💧 Humidity Too High (Persistent)",
+                "symptoms": "Constant condensation, mold/mildew growth, fungal diseases",
+                "causes": [
+                    "<b>Poor air circulation:</b> Stagnant air pockets allowing moisture buildup",
+                    "<b>Overwatering:</b> Excess soil moisture evaporating into air",
+                    "<b>Inadequate ventilation:</b> Insufficient fresh air exchange",
+                    "<b>Night condensation:</b> Temperature drops causing moisture release"
+                ],
+                "solutions": [
+                    "Install horizontal airflow (HAF) fans for continuous circulation",
+                    "Reduce watering frequency; use drip irrigation instead of overhead",
+                    "Increase ventilation during high-humidity periods (early morning, evening)",
+                    "Use thermal screens to prevent night condensation",
+                    "Install dehumidifier for extreme cases",
+                    "Space plants further apart; prune dense foliage"
+                ],
+                "prevention": "Proper greenhouse design with ridge vents, side vents, and fans; regular monitoring; avoiding evening watering"
+            },
+            {
+                "title": "💨 CO₂ Levels Low or Unstable",
+                "symptoms": "Slow plant growth, CO₂ readings below 400 ppm, enrichment not effective",
+                "causes": [
+                    "<b>Excessive ventilation:</b> Fresh air exchange removing enriched CO₂",
+                    "<b>Leaks in system:</b> CO₂ escaping before reaching plants",
+                    "<b>Poor distribution:</b> Uneven CO₂ levels across greenhouse",
+                    "<b>Timing issues:</b> CO₂ released when stomata are closed"
+                ],
+                "solutions": [
+                    "Balance ventilation: enrich CO₂ during low-ventilation periods (early morning)",
+                    "Check CO₂ distribution system for leaks and proper placement",
+                    "Use circulation fans to distribute CO₂ evenly",
+                    "Release CO₂ during photosynthesis hours (sunrise to 2-3 hours before sunset)",
+                    "Install CO₂ sensors to monitor and control enrichment automatically",
+                    "Consider burner or generator systems for larger operations"
+                ],
+                "prevention": "Regular system inspections, calibrate sensors annually, maintain 1000-1500 ppm during active growth"
+            },
+            {
+                "title": "🌬️ Poor Air Quality Persists",
+                "symptoms": "High gas readings (MQ135/MQ2/MQ7), odors, plant stress despite ventilation",
+                "causes": [
+                    "<b>Combustion equipment issues:</b> Incomplete burning producing CO",
+                    "<b>Gas leaks:</b> Propane or natural gas escaping from lines",
+                    "<b>Decomposing organic matter:</b> Compost or wet soil producing ammonia/methane",
+                    "<b>Chemical contamination:</b> Pesticides, paints, or cleaners releasing VOCs"
+                ],
+                "solutions": [
+                    "Inspect and service all combustion equipment (heaters, generators)",
+                    "Perform leak test on gas lines with soapy water or detector",
+                    "Move compost piles away from greenhouse; ensure proper aeration",
+                    "Remove or properly store chemicals; ventilate after application",
+                    "Install air filtration system with activated carbon filters",
+                    "Switch to electric heating if gas issues persist"
+                ],
+                "prevention": "Annual equipment servicing, proper chemical storage, adequate ventilation, regular gas sensor calibration"
+            },
+            {
+                "title": "☀️ Light Levels Inadequate",
+                "symptoms": "Leggy plants, slow growth, poor flowering/fruiting, low lux readings",
+                "causes": [
+                    "<b>Dirty glazing:</b> Algae, dust, or mineral deposits blocking light",
+                    "<b>Shading:</b> Nearby structures, trees, or shade cloth during low-light seasons",
+                    "<b>Short day length:</b> Insufficient natural light in winter",
+                    "<b>Glazing degradation:</b> Old plastic or glass with reduced transmittance"
+                ],
+                "solutions": [
+                    "Clean greenhouse glazing regularly (monthly minimum)",
+                    "Remove or trim nearby vegetation blocking light",
+                    "Remove shade cloth during low-light months (fall/winter)",
+                    "Install supplemental LED grow lights (full-spectrum, 12-16 hours/day)",
+                    "Replace old glazing with high-transmittance materials",
+                    "Use reflective mulches or white paint to increase light reflection"
+                ],
+                "prevention": "Regular cleaning schedule, proper greenhouse orientation (east-west for year-round), quality glazing materials"
+            },
+            {
+                "title": "🌱 Soil Moisture Inconsistent",
+                "symptoms": "Some areas too wet, others too dry; uneven plant growth",
+                "causes": [
+                    "<b>Uneven watering:</b> Manual watering missing spots or over-saturating areas",
+                    "<b>Soil variation:</b> Different soil types retaining water differently",
+                    "<b>Drainage issues:</b> Poor drainage creating waterlogged zones",
+                    "<b>Irrigation system problems:</b> Clogged emitters or broken lines"
+                ],
+                "solutions": [
+                    "Install drip irrigation with pressure-compensating emitters",
+                    "Use soil moisture sensors in multiple zones",
+                    "Amend soil with compost or perlite to improve consistency",
+                    "Ensure proper drainage with gravel beds or slope",
+                    "Flush and inspect irrigation lines regularly",
+                    "Group plants by water needs"
+                ],
+                "prevention": "Uniform soil preparation, automated irrigation with sensors, regular system maintenance"
+            }
+        ]
+        
+        for section in troubleshooting_sections:
+            elements.append(Paragraph(section["title"], section_heading_style))
+            elements.append(Paragraph(f"<b>Symptoms:</b> {section['symptoms']}", styles['Normal']))
+        
+            causes_text = "<b>Possible Causes:</b><br/>" + "<br/>".join([f"• {cause}" for cause in section['causes']])
+            elements.append(Paragraph(causes_text, styles['Normal']))
+        
+            solutions_text = "<b>Solutions:</b><br/>" + "<br/>".join([f"• {sol}" for sol in section['solutions']])
+            elements.append(Paragraph(solutions_text, styles['Normal']))
+        
+            elements.append(Paragraph(f"<b>Prevention:</b> {section['prevention']}", styles['Normal']))
+            elements.append(Spacer(1, 15))
+        
+        # Historical Data Summary - New Page
         elements.append(PageBreak())
-        elements.append(Paragraph("📈 Recent Historical Data", heading_style))
-        elements.append(Paragraph(f"Last {min(10, len(readings))} readings from APEX database:", styles['Normal']))
+        elements.append(Paragraph("Recent Historical Data", heading_style))
+        elements.append(Paragraph(f"Last {min(24, len(readings))} readings from APEX database", styles['Normal']))
         elements.append(Spacer(1, 12))
         
-        history_table_data = [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Light (lux)']]
-        for reading in readings[:10]:
+        history_table_data = [['Time', 'Temp\n(°C)', 'Humidity\n(%)', 'Light\n(lux)', 'CO₂\n(ppm)', 'Pressure\n(hPa)']]
+        for reading in readings[:24]:
             timestamp = datetime.fromtimestamp(reading.get('timestamp', time.time())).strftime('%m/%d %H:%M')
             temp = (reading.get('temperature_bmp280', 0) + reading.get('temperature_dht22', 0)) / 2
             humidity = reading.get('humidity', 0)
             light = reading.get('light', 0)
-            history_table_data.append([timestamp, f"{temp:.1f}", f"{humidity:.1f}", f"{light:.0f}"])
+            co2 = reading.get('co2_level', 0)
+            pressure = reading.get('pressure', 0)
+            history_table_data.append([
+                timestamp, 
+                f"{temp:.1f}", 
+                f"{humidity:.1f}", 
+                f"{light:.0f}",
+                f"{co2:.0f}",
+                f"{pressure:.1f}"
+            ])
         
-        history_table = Table(history_table_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+        history_table = Table(history_table_data, colWidths=[1*inch, 0.9*inch, 0.9*inch, 0.9*inch, 0.9*inch, 1*inch])
         history_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2196F3')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('BACKGROUND', (0, 0), (-1, 0), accent_blue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey])
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [card_soil, bg_soil])
         ]))
         elements.append(history_table)
         
-        # Footer
+        # Additional Sensor Details
         elements.append(Spacer(1, 30))
-        elements.append(Paragraph("―――――――――――――――――――――――――――――――――――", styles['Normal']))
-        elements.append(Paragraph("<i>Generated by EcoView Greenhouse Monitoring System</i>", styles['Normal']))
-        elements.append(Paragraph(f"<i>Report ID: {datetime.now().strftime('%Y%m%d%H%M%S')}</i>", styles['Normal']))
+        elements.append(Paragraph("Gas Sensor Readings", heading_style))
+        
+        gas_data = [
+            ['Sensor', 'Reading (ppm)', 'Status', 'Safety Level'],
+            [
+                'MQ135 (Air Quality)', 
+                f"{sensor_data.get('mq135_drop', 0):.0f}",
+                all_analysis['air_quality']['status'],
+                '✓ Safe' if sensor_data.get('mq135_drop', 0) <= 200 else ('⚠ Caution' if sensor_data.get('mq135_drop', 0) <= 500 else '✗ Poor')
+            ],
+            [
+                'MQ2 (Flammable Gas)',
+                f"{sensor_data.get('mq2_drop', 0):.0f}",
+                "Safe" if sensor_data.get('mq2_drop', 0) <= 300 else ("Elevated" if sensor_data.get('mq2_drop', 0) <= 750 else "High"),
+                '✓ Safe' if sensor_data.get('mq2_drop', 0) <= 300 else ('⚠ Caution' if sensor_data.get('mq2_drop', 0) <= 750 else '✗ Danger')
+            ],
+            [
+                'MQ7 (Carbon Monoxide)',
+                f"{sensor_data.get('mq7_drop', 0):.0f}",
+                "Safe" if sensor_data.get('mq7_drop', 0) <= 300 else ("Elevated" if sensor_data.get('mq7_drop', 0) <= 750 else "High"),
+                '✓ Safe' if sensor_data.get('mq7_drop', 0) <= 300 else ('⚠ Caution' if sensor_data.get('mq7_drop', 0) <= 750 else '✗ Danger')
+            ]
+        ]
+        
+        gas_table = Table(gas_data, colWidths=[2*inch, 1.5*inch, 1.3*inch, 1.2*inch])
+        gas_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), primary_green),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [card_soil, bg_soil])
+        ]))
+        elements.append(gas_table)
+        
+        # Footer with branding
+        elements.append(Spacer(1, 40))
+        footer_line = Table([['']], colWidths=[6*inch])
+        footer_line.setStyle(TableStyle([
+            ('LINEABOVE', (0, 0), (-1, 0), 2, accent_green),
+        ]))
+        elements.append(footer_line)
+        elements.append(Spacer(1, 10))
+        
+        footer_text = f"""
+        <para alignment="center">
+            <font size="10" color="{text_dark.hexval()}">
+                <i>Generated by <b>EcoView Greenhouse Monitoring System</b></i><br/>
+                Smart monitoring for optimal plant growth and environmental control<br/>
+                Report ID: {datetime.now().strftime('%Y%m%d%H%M%S')} | Data Source: Oracle APEX
+            </font>
+        </para>
+        """
+        elements.append(Paragraph(footer_text, styles['Normal']))
         
         # Build PDF
         doc.build(elements)
