@@ -705,12 +705,16 @@ class _BackgroundImage extends StatefulWidget {
 class _BackgroundImageState extends State<_BackgroundImage> {
   // Candidate asset filenames users might add
   static const candidates = <String>[
+    // New preferred background asset names
+    'assets/the app background.png',
+    'assets/app background.png',
     'assets/greenhouse_bg.png',
     'assets/greenhouse_bg.jpg',
     'assets/greenhouse_banner.jpg',
     'assets/greenhouse.jpg',
     'assets/greenhouse.png',
     // Known files currently in assets as fallbacks
+    // Older background that may still exist in some clones
     'assets/Gemini_Generated_Image_vmo4davmo4davmo4.png',
     'assets/app_icon.png',
   ];
