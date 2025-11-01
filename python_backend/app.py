@@ -70,6 +70,55 @@ def _get_co2_status(value):
     else:
         return "High"
 
+def _get_combined_air_quality_status(mq135_ppm, co2_ppm):
+    """
+    Get unified air quality status combining MQ135 sensor and CO2 levels.
+    
+    MQ135 thresholds (air quality sensor):
+    - Good: ≤200 ppm
+    - Moderate: 200-500 ppm
+    - Poor: >500 ppm
+    
+    CO2 thresholds:
+    - Good: 300-800 ppm
+    - Acceptable: 800-1500 ppm
+    - High: >1500 ppm
+    
+    Combined status considers BOTH readings:
+    - Optimal: MQ135 ≤200 AND CO2 300-800
+    - Good: MQ135 ≤200 OR CO2 ≤800
+    - Moderate: MQ135 200-500 OR CO2 800-1500
+    - High: MQ135 >500 OR CO2 >1500
+    - Critical: Both sensors show poor readings
+    """
+    # Determine MQ135 status
+    if mq135_ppm <= 200:
+        mq135_status = "good"
+    elif mq135_ppm <= 500:
+        mq135_status = "moderate"
+    else:
+        mq135_status = "poor"
+    
+    # Determine CO2 status
+    if 300 <= co2_ppm <= 800:
+        co2_status = "good"
+    elif co2_ppm <= 1500:
+        co2_status = "moderate"
+    else:
+        co2_status = "poor"
+    
+    # Combined logic - worst reading takes precedence
+    if mq135_status == "poor" and co2_status == "poor":
+        return "Critical"
+    elif mq135_status == "poor" or co2_status == "poor":
+        return "High"
+    elif mq135_status == "moderate" or co2_status == "moderate":
+        return "Moderate"
+    elif mq135_status == "good" and co2_status == "good":
+        return "Optimal"
+    else:
+        return "Good"
+
 def _get_light_status(value):
     """Get status description for light reading
     Thresholds based on ambient light intensity (0-4095 raw):
@@ -91,13 +140,30 @@ def _get_light_status(value):
         return "Bright"
 
 def _get_soil_moisture_status(value):
-    """Get status description for soil moisture reading"""
-    if 40 <= value <= 60:
-        return "Optimal"
-    elif (30 <= value < 40) or (60 < value <= 70):
+    """Get status description for soil moisture reading
+    Thresholds from APEX groups/data/10 endpoint spec:
+    - <15%: Critical (Low) - Severe drought stress
+    - 15-30%: Low - Dry, irrigation needed
+    - 30-40%: Acceptable (below optimal)
+    - 40-60%: Optimal - Ideal moisture range
+    - 60-80%: Acceptable (above optimal)
+    - 80-90%: High - Wet, risk of overwatering
+    - ≥90%: Critical (High) - Saturated, root rot risk
+    """
+    if value < 15:
+        return "Critical (Low)"
+    elif value < 30:
+        return "Low"
+    elif value < 40:
         return "Acceptable"
+    elif value <= 60:
+        return "Optimal"
+    elif value <= 80:
+        return "Acceptable"
+    elif value < 90:
+        return "High"
     else:
-        return "Critical"
+        return "Critical (High)"
         
 def ip_broadcast_service():
     """Broadcasts the server IP address on the local network"""
@@ -159,7 +225,11 @@ items = [
 # APEX DATA SOURCE - All sensor data comes from Oracle APEX (NO SIMULATED DATA)
 # ============================================================================
 
+# PRIMARY endpoint for greenhouse gas sensors (MQ135, MQ2, MQ7, BMP280, DHT22, flame, light)
 ORACLE_APEX_URL = os.getenv('ORACLE_APEX_URL', "https://oracleapex.com/ords/g3_data/iot/greenhouse/")
+
+# SECONDARY endpoint for soil/plant metrics (moisture, temperature, ec, ph, NPK)
+ORACLE_APEX_SOIL_URL = os.getenv('ORACLE_APEX_SOIL_URL', "https://oracleapex.com/ords/g3_data/groups/data/10")
 
 def get_apex_connection(url):
     """Get or create persistent HTTPS connection to APEX for connection pooling"""
@@ -255,26 +325,66 @@ def fetch_apex_readings(apex_url=None, timeout=10):
             normalized = []
             for idx, it in enumerate(items):
                 it_copy = dict(it)
-                
-                # Get the original APEX timestamp (format: "2025-10-29T15:21:22.123456Z")
+
+                # Get the original APEX timestamp. Different APEX endpoints use different keys:
+                # - ISO style: "timestamp_reading" -> "2025-10-29T15:21:22.971802Z"
+                # - groups endpoint: "corrected_created_at" -> "30-OCT-2025 15:02:22"
+                # We'll try several common keys and parsing strategies.
                 apex_ts_str = it.get("timestamp_reading", "")
-                
+                if not apex_ts_str:
+                    # try other common fields returned by APEX groups endpoints
+                    apex_ts_str = it.get("corrected_created_at", "") or it.get("created_at", "") or it.get("ts", "") or it.get("time", "")
+
                 if apex_ts_str:
+                    # Normalize whitespace/newlines produced by some HTML/JSON renderings
+                    apex_ts_str_clean = " ".join(str(apex_ts_str).split())
+                    parsed_ok = False
+                    # Try ISO format with microseconds / Z
                     try:
-                        # Parse the APEX ISO timestamp WITH microseconds
-                        # APEX already provides the CORRECT full timestamp - use it as-is!
-                        # Format: "2025-10-29T15:21:22.971802Z"
-                        apex_dt = datetime.strptime(apex_ts_str.replace('Z', ''), "%Y-%m-%dT%H:%M:%S.%f")
-                        
-                        # Convert to Unix timestamp (this is the ACTUAL time from APEX)
+                        apex_dt = datetime.strptime(apex_ts_str_clean.replace('Z', ''), "%Y-%m-%dT%H:%M:%S.%f")
                         it_copy["timestamp"] = apex_dt.timestamp()
-                    except Exception as e:
-                        print(f"Failed to parse timestamp '{apex_ts_str}': {e}")
-                        # Fallback: use current time if parsing fails
+                        parsed_ok = True
+                    except Exception:
+                        pass
+
+                    if not parsed_ok:
+                        # Try ISO without microseconds
+                        try:
+                            apex_dt = datetime.strptime(apex_ts_str_clean.replace('Z', ''), "%Y-%m-%dT%H:%M:%S")
+                            it_copy["timestamp"] = apex_dt.timestamp()
+                            parsed_ok = True
+                        except Exception:
+                            pass
+
+                    if not parsed_ok:
+                        # Try APEX human-readable like '30-OCT-2025 15:02:22' or '30-OCT-2025\n15:02:22'
+                        try:
+                            # Ensure month abbreviation is upper-case (e.g., OCT)
+                            apex_norm = apex_ts_str_clean.upper()
+                            # Remove any commas
+                            apex_norm = apex_norm.replace(',', '')
+                            apex_dt = datetime.strptime(apex_norm, "%d-%b-%Y %H:%M:%S")
+                            it_copy["timestamp"] = apex_dt.timestamp()
+                            parsed_ok = True
+                        except Exception:
+                            pass
+
+                    if not parsed_ok:
+                        # Last resort: try to extract any integer-like epoch in the string
+                        try:
+                            import re
+                            m = re.search(r"(1[0-9]{9}|2[0-9]{9})", apex_ts_str_clean)
+                            if m:
+                                it_copy["timestamp"] = float(m.group(0))
+                                parsed_ok = True
+                        except Exception:
+                            pass
+
+                    if not parsed_ok:
+                        print(f"Failed to parse timestamp '{apex_ts_str}'; using pull-time fallback")
                         it_copy["timestamp"] = time.time() - (idx * 10)
                 else:
                     # No timestamp in APEX data, use current time
-                    it_copy["timestamp"] = time.time() - (idx * 10)
                     it_copy["timestamp"] = time.time() - (idx * 10)
                 
                 it_copy["_ts_num"] = it_copy["timestamp"]
@@ -380,6 +490,21 @@ def build_derived_from_reading(r):
 
     co2_level = round(400 + mq135_drop * 1.2, 1)
 
+    # Prefer sloi_moisture from APEX when present (some APEX endpoints use that key).
+    sloi_raw = None
+    # Many APEX endpoints use key 'moisture' for soil moisture; check that too.
+    for _k in ('sloi_moisture', 'moisture', 'sloi', 'sloiMoisture'):
+        if _k in r and r.get(_k) is not None:
+            try:
+                sloi_raw = float(r.get(_k))
+                break
+            except Exception:
+                sloi_raw = None
+
+    sloi_moisture = round(sloi_raw) if sloi_raw is not None else None
+    # Final soil_moisture uses sloi_moisture when available, otherwise fall back to existing key
+    soil_moisture_value = round(sloi_raw) if sloi_raw is not None else round(num("soil_moisture", 45))
+
     derived = {
         "temperature": temperature,
         "humidity": round(num("humidity", 0.0), 1),
@@ -388,7 +513,9 @@ def build_derived_from_reading(r):
         "light_raw": light_intensity,  # Also include as light_raw for compatibility
         "pressure": round(num("pressure", 0.0), 1),
         "altitude": round(num("altitude", 0.0), 1),
-        "soil_moisture": round(num("soil_moisture", 45)),
+    # Include both fields: prefer sloi_moisture for consumers that request it
+    "sloi_moisture": sloi_moisture,
+    "soil_moisture": soil_moisture_value,
         "flame_detected": flame_detected,
         "flame_status": flame_status,
         # Gas sensor values - DIRECT FROM APEX (already in PPM)
@@ -399,10 +526,14 @@ def build_derived_from_reading(r):
         "mq2_baseline": mq2_baseline,
         "mq7_baseline": mq7_baseline,
         # Status based on REAL thresholds from system specification
-        # MQ135: >500 = poor, >200 = degraded, ≤200 = good
-        "air_quality": "Good" if mq135_drop <= 200 else ("Poor" if mq135_drop > 500 else "Moderate"),
+        # COMBINED Air Quality Status (MQ135 + CO2)
+        "air_quality": _get_combined_air_quality_status(mq135_drop, co2_level),
+        # Individual sensor statuses (for reference/debugging)
+        "mq135_status": "Good" if mq135_drop <= 200 else ("Poor" if mq135_drop > 500 else "Moderate"),
+        "co2_status": _get_co2_status(co2_level),
         # MQ2: >750 = high, >300 = elevated, ≤300 = safe
         "flammable_gas": "Safe" if mq2_drop <= 300 else ("High" if mq2_drop > 750 else "Elevated"),
+        "smoke_level": "Safe" if mq2_drop <= 300 else ("High" if mq2_drop > 750 else "Elevated"),  # Alias for Flutter
         # MQ7: >750 = high, >300 = elevated, ≤300 = safe
         "co_level": "Safe" if mq7_drop <= 300 else ("High" if mq7_drop > 750 else "Elevated"),
         "timestamp": r.get("timestamp", r.get("_ts_num", time.time())),
@@ -452,19 +583,39 @@ _smart_cache_lock = threading.Lock()
 
 def continuous_apex_poller():
     """
-    Background thread that continuously polls APEX every 3 seconds
-    and keeps the cache updated with fresh data
+    Background thread that continuously polls PRIMARY APEX endpoint (greenhouse sensors).
+    Additionally fetches soil moisture from SECONDARY endpoint and merges ONLY moisture+timestamp.
     """
     global _smart_cache
     interval = _smart_cache.get('fetch_interval', 3)
     print(f"🔄 Starting continuous APEX poller (fetching every {interval} seconds)...")
+    print(f"   Primary (all sensors): {ORACLE_APEX_URL}")
+    print(f"   Secondary (soil moisture only): {ORACLE_APEX_SOIL_URL}")
     
     while True:
         try:
             print(f"🔍 Polling APEX...")
+            
+            # PRIMARY fetch: greenhouse sensors (this is the main data source)
             readings = fetch_apex_readings(ORACLE_APEX_URL, timeout=60)
             
+            # SECONDARY fetch: soil moisture only (supplement main data)
+            soil_readings = None
+            try:
+                soil_readings = fetch_apex_readings(ORACLE_APEX_SOIL_URL, timeout=60)
+            except Exception as e:
+                print(f"⚠️ Soil endpoint poll failed (non-critical): {e}")
+            
             if readings:
+                # If we have soil data, merge ONLY moisture into the latest greenhouse reading
+                if soil_readings and len(soil_readings) > 0:
+                    latest_soil = soil_readings[0]
+                    # Add soil moisture to the latest reading
+                    if 'moisture' in latest_soil and latest_soil['moisture'] is not None:
+                        readings[0]['moisture'] = latest_soil['moisture']
+                        readings[0]['sloi_moisture'] = latest_soil['moisture']  # Also set alias
+                        print(f"   ✅ Added soil moisture: {latest_soil['moisture']}%")
+                
                 with _smart_cache_lock:
                     _smart_cache['data'] = readings
                     _smart_cache['timestamp'] = datetime.now()
@@ -583,6 +734,13 @@ def get_sensor_analysis(sensor_type):
                 # Fallback: convert light_percent to raw if available
                 if 'light_percent' in reading and reading['light_percent'] is not None:
                     return float(reading['light_percent']) * 4095.0 / 100.0
+                return None
+            elif key == 'soil_moisture':
+                # Check for various soil moisture field names from different APEX endpoints
+                # Prefer sloi_moisture/moisture from groups endpoint, fallback to soil_moisture
+                for field in ('sloi_moisture', 'moisture', 'soil_moisture'):
+                    if field in reading and reading[field] is not None:
+                        return float(reading[field])
                 return None
             else:
                 if key in reading:
@@ -792,6 +950,13 @@ def get_sensor_ai_only(sensor_type):
             current_value = sensor_data.get('mq7_drop', 0)
             unit = 'ppm'
             status = "Safe" if current_value <= 300 else ("High" if current_value > 750 else "Elevated")
+        elif 'soil' in st or 'moisture' in st:
+            # Check for various soil moisture field names
+            current_value = (sensor_data.get('sloi_moisture') or 
+                           sensor_data.get('moisture') or 
+                           sensor_data.get('soil_moisture') or 0)
+            unit = '%'
+            status = _get_soil_moisture_status(current_value)
         elif 'altitude' in st:
             current_value = sensor_data.get('altitude', 0)
             unit = 'm'
@@ -820,6 +985,11 @@ def get_sensor_ai_only(sensor_type):
                 val = r.get('mq2_drop', 0)
             elif 'mq7' in st or ('co' in st and 'co2' not in st) or 'carbon monoxide' in st:
                 val = r.get('mq7_drop', 0)
+            elif 'soil' in st or 'moisture' in st:
+                # Check for various soil moisture field names from merged data
+                val = (r.get('sloi_moisture') or 
+                      r.get('moisture') or 
+                      r.get('soil_moisture') or 0)
             elif 'altitude' in st:
                 val = r.get('altitude', 0)
             elif 'pressure' in st:
@@ -1063,11 +1233,14 @@ def get_alerts():
     })
 
 if __name__ == '__main__':
-    # Start continuous APEX poller if ORACLE_APEX_URL is set
+    # Start continuous APEX poller if URL is set
     if ORACLE_APEX_URL:
         poller_thread = threading.Thread(target=continuous_apex_poller, daemon=True)
         poller_thread.start()
         print('✅ Continuous APEX poller started (fetching every 3 seconds)')
+        print(f'   Main sensors: {ORACLE_APEX_URL}')
+        if ORACLE_APEX_SOIL_URL:
+            print(f'   Soil moisture supplement: {ORACLE_APEX_SOIL_URL}')
     else:
         print('⚠️ ORACLE_APEX_URL not set - APEX polling disabled')
 

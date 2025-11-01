@@ -30,16 +30,30 @@ This document lists all the thresholds used in the system for sensor status and 
 
 ---
 
-## MQ135 - Air Quality Sensor (ppm)
+## MQ135 - Air Quality Sensor (ppm) + CO₂ Combined Status
 **From APEX system specifications - measures air quality/CO2-like gases**
 
+### Individual MQ135 Thresholds:
 - **Good**: ≤200 ppm
 - **Moderate**: >200-500 ppm  
 - **Poor**: >500 ppm
 
-**Status Logic**: Used in `build_derived_from_reading()` in `app.py` line 303
-**AI Recommendations**: Triggers ventilation alerts when >200 ppm
+### Individual CO₂ Thresholds (calculated from MQ135):
+- **Good**: 300-800 ppm
+- **Moderate**: 800-1500 ppm
+- **High**: >1500 ppm
+
+### Combined Air Quality Status (considers BOTH):
+- **Optimal**: MQ135 ≤200 ppm AND CO₂ 300-800 ppm (both sensors perfect)
+- **Good**: MQ135 ≤200 ppm OR CO₂ ≤800 ppm (one sensor good)
+- **Moderate**: MQ135 200-500 ppm OR CO₂ 800-1500 ppm (one or both moderate)
+- **High**: MQ135 >500 ppm OR CO₂ >1500 ppm (one sensor poor)
+- **Critical**: BOTH MQ135 >500 ppm AND CO₂ >1500 ppm (both sensors poor)
+
+**Status Logic**: Used in `_get_combined_air_quality_status()` in `app.py`
+**AI Recommendations**: Triggers ventilation alerts based on combined status
 **Data Source**: `mq135_drop` field from APEX (already calculated, no conversion needed)
+**CO₂ Calculation**: `co2_level = 400 + (mq135_drop * 1.2)`
 **Note**: Negative values are clamped to 0 (indicates sensor calibration issue)
 
 ---
