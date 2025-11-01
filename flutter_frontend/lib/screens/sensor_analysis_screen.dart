@@ -1,5 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+// --- FIX: Added intl package import ---
+import 'package:intl/intl.dart';
+// -------------------------------------
 import '../models/sensor_analysis.dart';
 import '../services/api_service.dart';
 
@@ -102,47 +105,43 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
   }
 
   Color _getStatusColor(String status) {
+    final scheme = Theme.of(context).colorScheme;
     switch (status.toLowerCase()) {
       case 'optimal':
       case 'good':
-        return Colors.green;
-      case 'acceptable':
-      case 'moderate':
-      case 'adequate':
-        return Colors.orange;
-      case 'critical':
-      case 'poor':
-      case 'insufficient':
-      case 'high':
-        return Colors.red;
-      case 'detected':
-        return Colors.red;
       case 'safe':
-        return Colors.green;
-      case 'elevated':
-        return Colors.orange;
       case 'bright':
-        return Colors.green;
+      case 'moderate':
+      case 'none': // For flame
+        return scheme.primary;
+      case 'acceptable':
+      case 'elevated':
       case 'dim indoor':
-        return Colors.orange;
+        return Colors.orangeAccent;
+      case 'critical':
+      case 'high':
+      case 'poor':
       case 'low light':
       case 'dark night':
-        return Colors.red;
+      case 'detected': // For flame
+        return Colors.redAccent;
       default:
-        return Colors.blue;
+        return scheme.secondary;
     }
   }
   
   double _getLeftInterval(double range) {
+    if (range <= 0) return 1.0;
     if (range < 5) return 1.0;
     if (range < 20) return 5.0;
-    if (range < 100) return range / 5;
-    if (range < 500) return range / 4;
-    return range / 3;
+    if (range < 100) return (range / 5).ceilToDouble();
+    if (range < 500) return (range / 4).ceilToDouble();
+    return (range / 3).ceilToDouble();
   }
   
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.sensorType} Analysis'),
@@ -154,7 +153,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))
           : errorMessage.isNotEmpty
               ? Center(child: Text('Error: $errorMessage'))
               : _buildAnalysisContent(),
@@ -164,180 +163,210 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
   Widget _buildAnalysisContent() {
     if (analysis == null) return const Center(child: Text('No data available'));
     
-    return SingleChildScrollView(
+    final theme = Theme.of(context);
+    final statusColor = _getStatusColor(analysis!.status);
+    
+    return ListView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Card(
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Current Value',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // --- REVAMPED: Current Value Card ---
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${analysis!.currentValue}',
-                        style: Theme.of(context).textTheme.displaySmall,
-                      ),
-                      const SizedBox(width: 4),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          analysis!.unit,
-                          style: Theme.of(context).textTheme.titleMedium,
+                        'Current Value',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.textTheme.bodyMedium?.color,
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            '${analysis!.currentValue}',
+                            style: theme.textTheme.displaySmall?.copyWith(
+                              color: statusColor,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              analysis!.unit,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                color: theme.textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Text('Status: '),
+                ),
+                Column(
+                  children: [
+                     Text(
+                        'Status',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.textTheme.bodyMedium?.color,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Chip(
                         label: Text(
                           analysis!.getFormattedStatus(),
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        backgroundColor: _getStatusColor(analysis!.status),
+                        backgroundColor: statusColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                  ],
+                )
+              ],
             ),
           ),
-          
-          const SizedBox(height: 16),
-          
-          Card(
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Historical Data',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      DropdownButton<String>(
-                        value: selectedTimeRange,
-                        onChanged: _onTimeRangeChanged,
-                        items: timeRanges.map((range) {
-                          return DropdownMenuItem<String>(
-                            value: range['value'],
-                            child: Text(range['label']!),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 200,
-                    child: _buildChart(),
-                  ),
-                ],
-              ),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // --- REVAMPED: Historical Data Card ---
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Historical Data',
+                      style: theme.textTheme.titleLarge,
+                    ),
+                    DropdownButton<String>(
+                      value: selectedTimeRange,
+                      onChanged: _onTimeRangeChanged,
+                      items: timeRanges.map((range) {
+                        return DropdownMenuItem<String>(
+                          value: range['value'],
+                          child: Text(range['label']!),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 250,
+                  child: _buildChart(),
+                ),
+              ],
             ),
           ),
-          
-          const SizedBox(height: 16),
-          
-          Card(
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.auto_awesome, color: Colors.amber),
-                      const SizedBox(width: 8),
-                      Text(
-                        'AI Analysis',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (isLoadingAI)
-                    Center(
-                      child: Column(
-                        children: [
-                          CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Generating AI insights...',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // --- REVAMPED: AI Analysis Card ---
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: Colors.amber[600]),
+                    const SizedBox(width: 12),
+                    Text(
+                      'AI Analysis',
+                      style: theme.textTheme.titleLarge,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (isLoadingAI)
+                  Center(
+                    child: Column(
                       children: [
-                        Text(
-                          aiAnalysis,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.amber[600]!),
                         ),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            'Generated: ${_formatTimestamp(analysis!.dateTime)}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey,
-                            ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Generating AI insights...',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.textTheme.bodyMedium?.color,
                           ),
                         ),
                       ],
                     ),
-                ],
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          Card(
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Recommendations',
-                    style: Theme.of(context).textTheme.titleMedium,
+                  )
+                else
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        aiAnalysis,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'Generated: ${_formatTimestamp(analysis!.dateTime)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.textTheme.bodyMedium?.color,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  _buildRecommendation(),
-                ],
-              ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // --- REVAMPED: Recommendations Card ---
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline, color: theme.colorScheme.primary),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Recommendations',
+                      style: theme.textTheme.titleLarge,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildRecommendation(),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
   
@@ -346,6 +375,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
       return const Center(child: Text('No historical data available'));
     }
     
+    final theme = Theme.of(context);
     final values = analysis!.historicalData.map((dp) => dp.value).toList();
     final timestamps = analysis!.historicalData.map((dp) => dp.timestamp).toList();
     
@@ -356,59 +386,66 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     final minValue = values.reduce((a, b) => a < b ? a : b);
     final maxValue = values.reduce((a, b) => a > b ? a : b);
     
-    final range = maxValue - minValue != 0 ? maxValue - minValue : 1.0;
+    final range = maxValue - minValue;
     
-    final yMin = range < 1 ? minValue - 1 : minValue - (range * 0.1);
-    final yMax = range < 1 ? maxValue + 1 : maxValue + (range * 0.1);
+    final yMin = range < 1 ? minValue - 1 : minValue - (range * 0.2);
+    final yMax = range < 1 ? maxValue + 1 : maxValue + (range * 0.2);
     
     final timeRange = timestamps.last - timestamps.first;
     final xInterval = timeRange > 0 ? timeRange / 5 : 1.0;
     
+    final chartColor = _getStatusColor(analysis!.status);
+    final gridColor = theme.colorScheme.surface.withOpacity(0.3);
+
     return LineChart(
       LineChartData(
         gridData: FlGridData(
           show: true,
           drawVerticalLine: true,
-          horizontalInterval: range / 5,
+          horizontalInterval: _getLeftInterval(range),
           verticalInterval: xInterval,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: gridColor,
+              strokeWidth: 1,
+            );
+          },
+          getDrawingVerticalLine: (value) {
+            return FlLine(
+              color: gridColor,
+              strokeWidth: 1,
+            );
+          },
         ),
         titlesData: FlTitlesData(
           show: true,
-          rightTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 40,
+              reservedSize: 30,
               interval: xInterval,
               getTitlesWidget: (value, meta) {
-                final now = DateTime.now();
-                final dataTime = DateTime.fromMillisecondsSinceEpoch((value * 1000).toInt());
-                final diff = now.difference(dataTime);
-                
+                final dt = DateTime.fromMillisecondsSinceEpoch((value * 1000).toInt());
                 String timeLabel;
-                if (diff.inMinutes < 1) {
-                  timeLabel = '${diff.inSeconds}s ago';
-                } else if (diff.inHours < 1) {
-                  timeLabel = '${diff.inMinutes}m ago';
-                } else if (diff.inDays < 1) {
-                  timeLabel = '${diff.inHours}h ago';
+                // --- FIX: DateFormat is now available ---
+                if(selectedTimeRange == 'seconds' || selectedTimeRange == 'minutes') {
+                  timeLabel = DateFormat.Hms().format(dt);
+                } else if (selectedTimeRange == 'hours') {
+                  timeLabel = DateFormat.Hm().format(dt);
                 } else {
-                  timeLabel = '${diff.inDays}d ago';
+                  timeLabel = DateFormat.Md().format(dt);
                 }
                 
                 return SideTitleWidget(
                   axisSide: meta.axisSide,
-                  space: 4.0,
+                  space: 8.0,
                   child: Text(
                     timeLabel,
-                    style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500,
+                    style: TextStyle(
+                      color: theme.textTheme.bodyMedium?.color,
+                      fontSize: 10,
                     ),
                   ),
                 );
@@ -418,58 +455,17 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
+              reservedSize: 40,
               interval: _getLeftInterval(range),
-              reservedSize: 80,
               getTitlesWidget: (value, meta) {
-                if (widget.sensorType.toLowerCase().contains('flame')) {
-                  if (value == 1) {
-                    return SideTitleWidget(
-                      axisSide: meta.axisSide,
-                      space: 4.0,
-                      child: const Text(
-                        'Detected',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    );
-                  } else if (value == 0) {
-                    return SideTitleWidget(
-                      axisSide: meta.axisSide,
-                      space: 4.0,
-                      child: const Text(
-                        'Not Detected',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    );
-                  } else {
-                    return const SizedBox.shrink();
-                  }
-                }
-                
-                String label;
-                if (value.abs() >= 1000) {
-                  label = '${(value / 1000).toStringAsFixed(1)}k';
-                } else if (value.abs() >= 100) {
-                  label = value.toStringAsFixed(0);
-                } else if (value.abs() >= 10) {
-                  label = value.toStringAsFixed(1);
-                } else {
-                  label = value.toStringAsFixed(2);
-                }
-                
                 return SideTitleWidget(
                   axisSide: meta.axisSide,
-                  space: 4.0,
+                  space: 8.0,
                   child: Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500,
+                    value.toStringAsFixed(0),
+                    style: TextStyle(
+                      color: theme.textTheme.bodyMedium?.color,
+                      fontSize: 10,
                     ),
                   ),
                 );
@@ -479,7 +475,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
         ),
         borderData: FlBorderData(
           show: true,
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: gridColor, width: 1),
         ),
         minX: timestamps.first,
         maxX: timestamps.last,
@@ -495,23 +491,13 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
               ),
             ),
             isCurved: true,
-            color: _getStatusColor(analysis!.status),
-            barWidth: 3,
+            color: chartColor,
+            barWidth: 4,
             isStrokeCapRound: true,
-            dotData: FlDotData(
-              show: true,
-              getDotPainter: (spot, percent, barData, index) {
-                return FlDotCirclePainter(
-                  radius: 4,
-                  color: Colors.white,
-                  strokeWidth: 2,
-                  strokeColor: _getStatusColor(analysis!.status),
-                );
-              },
-            ),
+            dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: _getStatusColor(analysis!.status).withAlpha((0.1 * 255).round()),
+              color: chartColor.withOpacity(0.2),
             ),
           ),
         ],
@@ -520,19 +506,26 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
   }
   
   Widget _buildRecommendation() {
+    final theme = Theme.of(context);
     String recommendation = '';
     
+    // Use a local variable for analysis to ensure null safety
+    final currentAnalysis = analysis;
+    if (currentAnalysis == null) {
+      return const Text("No analysis data to generate recommendations.");
+    }
+
     switch (widget.sensorType.toLowerCase()) {
       case 'temperature':
-        if (analysis!.status.toLowerCase() == 'optimal') {
+        if (currentAnalysis.status.toLowerCase() == 'optimal') {
           recommendation = 'Current temperature is optimal for plant growth. Continue maintaining current conditions.';
-        } else if (analysis!.status.toLowerCase() == 'acceptable') {
-          final isHigh = (analysis!.currentValue as num) > 25;
+        } else if (currentAnalysis.status.toLowerCase() == 'acceptable') {
+          final isHigh = (currentAnalysis.currentValue as num) > 25;
           recommendation = isHigh
               ? 'Consider increasing ventilation or shading to reduce temperature.'
               : 'Consider increasing heating to raise temperature to optimal range.';
         } else {
-          final isHigh = (analysis!.currentValue as num) > 28;
+          final isHigh = (currentAnalysis.currentValue as num) > 28;
           recommendation = isHigh
               ? 'Temperature is too high! Increase ventilation and shading immediately.'
               : 'Temperature is too low! Increase heating immediately to prevent plant damage.';
@@ -540,15 +533,15 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
         break;
         
       case 'humidity':
-        if (analysis!.status.toLowerCase() == 'optimal') {
+        if (currentAnalysis.status.toLowerCase() == 'optimal') {
           recommendation = 'Humidity levels are optimal for most plants. Continue current management.';
-        } else if (analysis!.status.toLowerCase() == 'acceptable') {
-          final isHigh = (analysis!.currentValue as num) > 70;
+        } else if (currentAnalysis.status.toLowerCase() == 'acceptable') {
+          final isHigh = (currentAnalysis.currentValue as num) > 70;
           recommendation = isHigh
               ? 'Consider increasing ventilation to reduce humidity levels slightly.'
               : 'Consider using a humidifier or misting plants to raise humidity.';
         } else {
-          final isHigh = (analysis!.currentValue as num) > 85;
+          final isHigh = (currentAnalysis.currentValue as num) > 85;
           recommendation = isHigh
               ? 'Humidity is too high! Increase ventilation to prevent mold and disease.'
               : 'Humidity is too low! Increase humidification to prevent plant stress.';
@@ -556,11 +549,11 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
         break;
         
       case 'co level':
-        if ((analysis!.currentValue as num) < 400) {
+        if ((currentAnalysis.currentValue as num) < 400) {
           recommendation = 'CO levels are below atmospheric average. Check ventilation and consider CO supplementation.';
-        } else if ((analysis!.currentValue as num) < 800) {
+        } else if ((currentAnalysis.currentValue as num) < 800) {
           recommendation = 'CO levels are within normal range. Consider supplementation during daylight hours for faster growth.';
-        } else if ((analysis!.currentValue as num) < 1500) {
+        } else if ((currentAnalysis.currentValue as num) < 1500) {
           recommendation = 'CO levels are optimal for enhanced plant growth. Continue current management.';
         } else {
           recommendation = 'CO levels are higher than optimal. Check ventilation and adjust supplementation.';
@@ -568,20 +561,23 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
         break;
         
       default:
-        recommendation = 'Monitor this parameter regularly and adjust based on plant requirements.';
+        // Use AI analysis if available, otherwise a generic fallback
+        recommendation = aiAnalysis.isNotEmpty 
+            ? aiAnalysis 
+            : 'Monitor this parameter regularly and adjust based on plant requirements.';
     }
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(Icons.lightbulb, color: Colors.amber),
-        const SizedBox(height: 8),
-        Text(recommendation),
-      ],
+    return Text(
+      recommendation,
+      style: theme.textTheme.bodyLarge?.copyWith(
+        height: 1.5,
+      ),
     );
   }
   
   String _formatTimestamp(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} at ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    // --- FIX: DateFormat is now available ---
+    return DateFormat('MMM d, yyyy @ h:mm a').format(dateTime);
   }
 }
+

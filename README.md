@@ -1,67 +1,209 @@
-# Greenhouse Monitoring App
+<div align="center">
 
-A full-stack application for monitoring and analyzing greenhouse environmental conditions.
+# EcoView Greenhouse
+
+Smart, themeable, cross‑platform monitoring for greenhouse environments — real‑time data, AI insights, and safety alerts.
+
+</div>
 
 ## Overview
 
-This project consists of:
+EcoView is a full‑stack application:
 
-1. **Flask Backend** - A Python server providing APIs for sensor data
-2. **Flutter Frontend** - A mobile app displaying real-time sensor data with a modern UI
+- Flutter frontend (Windows/macOS/Linux/Web/Android/iOS) with a clean earthy theme and responsive dashboard
+- Python Flask backend that pulls live readings from Oracle APEX and exposes REST APIs
+- Optional Google Gemini integration for AI analysis and recommendations
 
-## Features
+The system prioritizes real data: all sensor values come directly from APEX (no simulations), then thresholds are applied for statuses and alerts.
 
-- Real-time monitoring of temperature, humidity, CO2, light, and other greenhouse parameters
-- Historical data visualization
-- Alerts and notifications for critical conditions
-- AI-powered recommendations for optimal growing conditions
+## Key Features
 
-## Setup
+- Live dashboard: temperature, humidity, soil moisture, light, CO₂, air quality (MQ135), smoke (MQ2), CO (MQ7), flame
+- One‑tap deep dive: click a dashboard card for analysis and historical trends (AI insights available)
+- Sensors page: plain‑English explanations of each sensor, what it measures, and optimal ranges
+- Alerts: consolidated safety and environment alerts with severity levels
+- AI recommendations: Gemini‑backed guidance when enabled (fallback guidance built‑in)
+- Export: backend endpoint to generate a comprehensive PDF report
+- Auto‑discovery: frontend finds the backend on your LAN via UDP broadcast; or set IP in Settings
 
-### Backend Setup
+## Project Structure
 
-1. Navigate to the backend directory:
-   ```
-   cd python_backend
-   ```
+```
+sturdy-giggle/
+├─ flutter_frontend/           # Flutter app (Material 3, earthy/dark themes)
+│  ├─ lib/
+│  │  ├─ main.dart             # Themes, app shell, navigation
+│  │  ├─ screens/
+│  │  │  ├─ dashboard_screen.dart        # Banner + responsive cards grid
+│  │  │  ├─ sensor_info_screen.dart      # What each sensor does + optimal ranges
+│  │  │  ├─ sensor_analysis_screen.dart  # Trends + AI insights (from dashboard)
+│  │  │  ├─ settings_screen.dart         # Server discovery + manual IP override
+│  │  ├─ services/
+│  │  │  ├─ api_service.dart   # REST client, server discovery & health checks
+│  │  │  └─ server_discovery.dart
+│  ├─ assets/                  # App icon and images
+│  └─ pubspec.yaml
+├─ python_backend/
+│  ├─ app.py                   # Flask app, APEX polling, routes, report export
+│  ├─ gemini_service.py        # AI analysis (optional, with fallback)
+│  ├─ requirements.txt
+│  └─ THRESHOLDS.md            # Documented sensor thresholds and notes
+└─ README.md                   # This file
+```
 
-2. Create a virtual environment and activate it:
-   ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+## Prerequisites
 
-3. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+- Windows 10/11, macOS, or Linux
+- Python 3.10+ with pip
+- Flutter SDK (3.x) and Dart SDK; platform toolchains for your target (Windows/Chrome recommended to start)
 
-4. Run the Flask server:
-   ```
-   python app.py
-   ```
+> Note: Two legacy helper scripts (`install_app.ps1`, `Run_EcoView_App.bat`) reference old paths; follow the steps below instead.
 
-### Frontend Setup
+## Backend (Flask) — Setup and Run
 
-1. Navigate to the frontend directory:
-   ```
-   cd flutter_frontend
-   ```
+1) Create a virtual environment and install dependencies
 
-2. Install Flutter dependencies:
-   ```
-   flutter pub get
-   ```
+```powershell
+cd python_backend
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
 
-3. Run the app:
-   ```
-   flutter run
-   ```
+2) Configure environment variables (create a `.env` file next to `app.py`)
 
-## Configuration
+```
+ORACLE_APEX_URL=https://oracleapex.com/ords/g3_data/iot/greenhouse/
+# Optional for AI (Gemini):
+GEMINI_API_KEY=your_api_key_here
+```
 
-The Flutter app connects to the Flask backend using the IP address configured in `api_service.dart`.
+3) Run the server (binds to all interfaces so other devices can connect)
 
-## License
+```powershell
+python app.py
+```
 
-[MIT License](LICENSE)
+What the backend does:
+
+- Polls Oracle APEX every few seconds (persistent HTTP connection with pooling and gzip)
+- Broadcasts its presence over UDP every 5s as `GREENHOUSE_SERVER:<ip>:5000` to help the app auto‑discover it
+- Serves REST API at `http://<host>:5000/api`
+
+### Core API Endpoints
+
+- GET `/api/health` — status check
+- GET `/api/sensor-data` — latest normalized readings + derived fields
+- GET `/api/sensor-analysis/<sensor_type>` — stats and optional AI for one sensor
+- GET `/api/sensor-analysis/<sensor_type>/ai` — AI analysis only
+- GET `/api/ai-recommendations` — consolidated AI guidance
+- GET `/api/alerts` — environment and safety alerts with severity
+- GET `/api/export-report` — generate a PDF report
+
+See `python_backend/THRESHOLDS.md` for the exact status bands used by the backend.
+
+## Frontend (Flutter) — Setup and Run
+
+1) Install dependencies and run
+
+```powershell
+cd flutter_frontend
+flutter pub get
+flutter run -d windows  # or -d chrome / -d macos / -d linux / -d edge
+```
+
+2) Connecting to the backend
+
+- Auto‑discovery: if the backend is running on the same network, the app will find it via UDP broadcast
+- Manual: open Settings in the app and set the backend IP (and port if non‑default)
+
+> Tip: On Windows, ensure Firewall allows inbound connections on port 5000.
+
+### Dev quickstart (Windows)
+
+You can use an automated PowerShell script that sets up Python, starts the backend, and runs Flutter.
+
+```powershell
+# From the repo root
+Set-ExecutionPolicy -Scope Process RemoteSigned
+./scripts/dev_quickstart.ps1               # defaults to -Device windows
+./scripts/dev_quickstart.ps1 -Device chrome # run in Chrome instead
+```
+
+The script will:
+- Create `.venv` in `python_backend` if missing
+- Install backend requirements
+- Start the Flask server in a new PowerShell window
+- Run the Flutter app on Windows (or Chrome if Windows device isn’t available)
+
+## Sensors and Optimal Ranges (Summary)
+
+From `THRESHOLDS.md` and in‑app Sensor Info:
+
+- Temperature: Optimal 20–27°C; Acceptable 18–20 or 27–30; Critical <18 or >30
+- Humidity: Optimal 45–70%; Acceptable 71–80%; Critical <45 or >80
+- Light (0–4095 raw): Dark 0–300; Low 301–819; Dim 820–1638; Moderate 1639–2457; Bright 2458+
+- Air Quality (MQ135 ppm): Good ≤200; Moderate 201–500; Poor >500
+- Smoke (MQ2 ppm): Safe ≤300; Elevated 301–750; High >750
+- CO (MQ7 ppm): Safe ≤300; Elevated 301–750; High >750
+- Soil Moisture (%): Optimal 40–60; Acceptable 30–40 or 60–70; Critical <30 or >70
+- Flame: Boolean; “Flame Detected” triggers critical alert
+
+## Theming and UI Notes
+
+- Light theme: earthy palette (warm beige background, soil‑brown primary, olive secondary)
+- Dark theme: eco‑tech green accents on deep green surfaces
+- Inputs are consistently themed (TextField, Dropdown, SearchBar);
+  banner uses the app icon; dashboard cards are responsive and clickable
+
+## Troubleshooting
+
+- Frontend can’t connect:
+  - Verify backend is running and reachable at `http://<backend-ip>:5000/api/health`
+  - Same LAN/Wi‑Fi? Firewall permits port 5000?
+  - Set the server IP manually in the app Settings
+- New asset not showing (e.g., app icon):
+  - Do a Hot Restart, or stop the app and run `flutter run` again
+  - `flutter clean` if still stuck, then rebuild
+- AI responses missing:
+  - Set `GEMINI_API_KEY` in backend `.env` and restart the server
+  - The app includes robust fallback guidance if AI is unavailable
+
+## Development Tips
+
+- Backend: uses connection pooling to APEX; logs latest pull timestamps and temperatures for quick sanity checks
+- Frontend: uses `server_discovery.dart` for UDP discovery and caches the IP in SharedPreferences
+- The dashboard provides analysis and AI when you click a card; the Sensors page is for education and ranges
+
+## Roadmap ideas
+
+- Authentication and multi‑greenhouse support
+- Push notifications and scheduled reports
+- Packaging for Windows/macOS installers and Android/iOS stores
+
+---
+
+If you need help running the app in your environment, open an issue or ask for a tailored quickstart.
+
+## Optional extras we can add
+
+- Add screenshots (banner, dashboard, sensor info) to this README for visual clarity
+- Provide a tiny "dev quickstart" PowerShell script that creates a virtualenv, installs Python deps, runs the backend, and launches the Flutter app on Windows
+
+## Screenshots
+
+Below are representative visuals. You can replace these with your own captures in `docs/screenshots/`.
+
+- App icon (banner style)
+
+  ![EcoView Icon](flutter_frontend/assets/app%20icon.png)
+
+- Dashboard (placeholder)
+
+  Place a screenshot at `docs/screenshots/dashboard.png`, then replace this line with:
+  `![Dashboard](docs/screenshots/dashboard.png)`
+
+- Sensor Info (placeholder)
+
+  Place a screenshot at `docs/screenshots/sensor-info.png`, then replace this line with:
+  `![Sensor Info](docs/screenshots/sensor-info.png)`

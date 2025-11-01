@@ -1,270 +1,177 @@
 import 'package:flutter/material.dart';
-import './threshold_settings_screen.dart';
 
 class SensorInfoScreen extends StatelessWidget {
   const SensorInfoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sensor Information & Troubleshooting'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.tune),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ThresholdSettingsScreen()),
-              );
-            },
-            tooltip: 'Configure Thresholds',
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    final theme = Theme.of(context);
+    
+    // Define all sensors with detailed information
+    final sensors = [
+      {
+        'title': 'Temperature',
+        'icon': Icons.thermostat,
+        'color': Colors.orange,
+        'description': 'Monitors greenhouse air temperature to ensure optimal growing conditions',
+        'unit': '°C',
+        'optimal': '20-27°C',
+        'acceptable': '18-20°C or 27-30°C',
+        'critical': '<18°C or >30°C',
+        'purpose': 'Temperature is critical for plant metabolism, growth rates, and disease prevention. Most vegetables and greenhouse plants thrive in the 20-27°C range.',
+      },
+      {
+        'title': 'Humidity',
+        'icon': Icons.water_drop,
+        'color': Colors.blue,
+        'description': 'Measures relative humidity levels in the greenhouse air',
+        'unit': '%',
+        'optimal': '45-70%',
+        'acceptable': '71-80%',
+        'critical': '<45% or >80%',
+        'purpose': 'Proper humidity prevents disease (fungi thrive above 80%), supports healthy transpiration, and reduces plant stress. Controlled through vents and fans.',
+      },
+      {
+        'title': 'Soil Moisture',
+        'icon': Icons.grass,
+        'color': Colors.brown,
+        'description': 'Tracks moisture levels in the growing medium',
+        'unit': '%',
+        'optimal': '40-60%',
+        'acceptable': '30-40% or 60-70%',
+        'critical': '<30% or >70%',
+        'purpose': 'Ensures plants receive adequate water without overwatering. Different plants have different moisture requirements, but most prefer consistently moist (not saturated) soil.',
+      },
+      {
+        'title': 'Light Level',
+        'icon': Icons.wb_sunny,
+        'color': Colors.amber,
+        'description': 'Monitors ambient light intensity for photosynthesis',
+        'unit': 'ADC (0-4095)',
+        'optimal': '2458+ (Bright daylight)',
+        'acceptable': '1639-2457 (Moderate/Cloudy)',
+        'critical': '<820 (Too dim for growth)',
+        'purpose': 'Light is essential for photosynthesis and plant growth. Monitors natural sunlight to determine if supplemental lighting is needed.',
+      },
+      {
+        'title': 'CO2 Level',
+        'icon': Icons.cloud,
+        'color': Colors.purple,
+        'description': 'Measures carbon dioxide concentration for plant growth',
+        'unit': 'ppm',
+        'optimal': '400-1000 ppm',
+        'acceptable': '1000-1500 ppm',
+        'critical': '>1500 ppm',
+        'purpose': 'CO2 is essential for photosynthesis. Elevated levels (up to 1000-1500 ppm) can boost growth rates, but excessive levels reduce air quality.',
+      },
+      {
+        'title': 'Pressure',
+        'icon': Icons.compress,
+        'color': Colors.indigo,
+        'description': 'Barometric pressure context for weather trends and forecasting',
+        'unit': 'hPa',
+        // No strict action thresholds for pressure in this app
+        // Ranges intentionally omitted so the UI hides them gracefully
+        'purpose': 'Pressure helps interpret weather changes that can impact humidity, ventilation needs, and transpiration. It is informational and does not trigger alerts on its own.',
+      },
+      {
+        'title': 'Air Quality (MQ135)',
+        'icon': Icons.air,
+        'color': Colors.green,
+        'description': 'MQ135 sensor measures overall air quality and pollutants',
+        'unit': 'ppm',
+        'optimal': '≤200 ppm (Good)',
+        'acceptable': '200-500 ppm (Moderate)',
+        'critical': '>500 ppm (Poor)',
+        'purpose': 'Detects air quality issues including various gases. Poor air quality triggers ventilation to maintain a healthy environment for plants and workers.',
+      },
+      {
+        'title': 'Smoke Detection (MQ2)',
+        'icon': Icons.smoke_free,
+        'color': Colors.grey,
+        'description': 'MQ2 sensor detects smoke and flammable gases',
+        'unit': 'ppm',
+        'optimal': '≤300 ppm (Safe)',
+        'acceptable': '300-750 ppm (Elevated)',
+        'critical': '>750 ppm (DANGER)',
+        'purpose': 'Safety sensor that detects combustible gases and smoke. Critical for fire prevention and early warning in greenhouse operations.',
+      },
+      {
+        'title': 'Carbon Monoxide (MQ7)',
+        'icon': Icons.warning,
+        'color': Colors.deepOrange,
+        'description': 'MQ7 sensor specifically monitors CO levels',
+        'unit': 'ppm',
+        'optimal': '≤300 ppm (Safe)',
+        'acceptable': '300-750 ppm (Elevated)',
+        'critical': '>750 ppm (DANGER)',
+        'purpose': 'Monitors carbon monoxide from heating equipment. Essential safety sensor to prevent CO poisoning and ensure proper heating system operation.',
+      },
+      {
+        'title': 'Flame Detection',
+        'icon': Icons.local_fire_department,
+        'color': Colors.red,
+        'description': 'Optical sensor detects presence of flames',
+        'unit': 'Boolean',
+        'optimal': 'No flame detected',
+        'acceptable': 'N/A',
+        'critical': 'Flame detected',
+        'purpose': 'Critical safety sensor for immediate fire detection. Provides fastest response to fire hazards in the greenhouse.',
+      },
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSensorCard(
-            context,
-            title: 'Temperature Sensors',
-            icon: Icons.thermostat,
-            color: Colors.red,
-            description: 'BMP280 & DHT22 measure greenhouse temperature',
-            optimalRange: '21-27°C',
-            acceptableRange: '18-30°C',
-            troubleshooting: [
-              'Check sensor connection to controller',
-              'Verify sensor is not in direct sunlight',
-              'Ensure sensor is not near heating/cooling vents',
-              'Clean dust from sensor housing',
-              'Replace sensor if readings are erratic',
-            ],
-            tips: [
-              'Average of both sensors used for accuracy',
-              'BMP280 more accurate, DHT22 backup',
-              'Calibrate sensors quarterly',
-            ],
+          // Header
+          Text(
+            'Sensors',
+            style: theme.textTheme.displayMedium?.copyWith(fontSize: 28),
           ),
-          _buildSensorCard(
-            context,
-            title: 'Humidity Sensor (DHT22)',
-            icon: Icons.water_drop,
-            color: Colors.blue,
-            description: 'Measures relative humidity in greenhouse',
-            optimalRange: '60-75%',
-            acceptableRange: '50-85%',
-            troubleshooting: [
-              'Check if sensor is exposed to moisture',
-              'Verify sensor wiring is not damaged',
-              'Ensure sensor is in well-ventilated area',
-              'Clean sensor with dry cloth (not wet)',
-              'Replace if readings stuck at 0% or 100%',
-            ],
-            tips: [
-              'Control via vents and fans',
-              'Close vents to increase humidity',
-              'Open vents/run fans to decrease humidity',
-            ],
+          const SizedBox(height: 8),
+          Text(
+            'Learn about each sensor and their optimal ranges',
+            style: theme.textTheme.bodyMedium,
           ),
-          _buildSensorCard(
-            context,
-            title: 'MQ135 - Air Quality Sensor',
-            icon: Icons.air,
-            color: Colors.green,
-            description: 'Detects air quality and CO2-like gases',
-            optimalRange: '≤200 ppm',
-            acceptableRange: '200-500 ppm',
-            troubleshooting: [
-              'Allow 24-48 hours warm-up for new sensor',
-              'Check if sensor needs recalibration in clean air',
-              'Verify baseline value is recorded correctly',
-              'Ensure sensor is not blocked or covered',
-              'Replace if readings always show high values',
-            ],
-            tips: [
-              'Measures voltage drop from baseline',
-              'Lower drop = cleaner air',
-              'Higher drop = more pollutants/CO2',
-              'Increase ventilation when >200 ppm',
-            ],
-          ),
-          _buildSensorCard(
-            context,
-            title: 'MQ2 - Flammable Gas Sensor',
-            icon: Icons.local_fire_department,
-            color: Colors.orange,
-            description: 'Detects smoke and combustible gases (LPG, propane)',
-            optimalRange: '≤300 ppm',
-            acceptableRange: '300-750 ppm (CAUTION)',
-            troubleshooting: [
-              'CRITICAL: >750 ppm requires immediate action',
-              'Check all gas connections for leaks',
-              'Inspect fuel lines and tanks',
-              'Verify heating equipment is functioning properly',
-              'Test sensor with lighter flame (brief exposure)',
-              'Replace sensor every 2-3 years',
-            ],
-            tips: [
-              'Never ignore high readings',
-              'Increase ventilation if elevated',
-              'Keep fire extinguisher accessible',
-              'Regular maintenance prevents false alarms',
-            ],
-          ),
-          _buildSensorCard(
-            context,
-            title: 'MQ7 - Carbon Monoxide Sensor',
-            icon: Icons.warning_amber_rounded,
-            color: Colors.red.shade900,
-            description: 'Detects deadly carbon monoxide gas',
-            optimalRange: '≤300 ppm',
-            acceptableRange: '300-750 ppm (WARNING)',
-            troubleshooting: [
-              'DANGER: >750 ppm is life-threatening',
-              'Check all combustion equipment immediately',
-              'Inspect heating system and exhausts',
-              'Ensure proper ventilation at all times',
-              'Test sensor monthly with CO test gas',
-              'Replace sensor annually for safety',
-            ],
-            tips: [
-              'CO is colorless, odorless, deadly',
-              'Always ventilate when levels rise',
-              'Never run generators indoors',
-              'Install backup CO detector recommended',
-            ],
-          ),
-          _buildSensorCard(
-            context,
-            title: 'Flame Sensor (IR Detection)',
-            icon: Icons.whatshot,
-            color: Colors.deepOrange,
-            description: 'Detects flames and strong infrared sources',
-            optimalRange: 'No detection',
-            acceptableRange: 'N/A - Alert on detection',
-            troubleshooting: [
-              'Check sensor lens for dirt or obstructions',
-              'Verify sensor angle covers heating equipment',
-              'Test with lighter flame to confirm sensitivity',
-              'Adjust sensor position if getting false positives',
-              'Shield from direct sunlight (causes false positives)',
-              'Replace if unresponsive to flame',
-            ],
-            tips: [
-              'Detects IR wavelength from flames',
-              'Lower raw value = flame detected',
-              'Immediate inspection required on alert',
-              'Position near potential fire sources',
-            ],
-          ),
-          _buildSensorCard(
-            context,
-            title: 'BMP280 - Pressure & Altitude',
-            icon: Icons.speed,
-            color: Colors.purple,
-            description: 'Measures barometric pressure and calculates altitude',
-            optimalRange: '990-1030 hPa',
-            acceptableRange: '950-1050 hPa',
-            troubleshooting: [
-              'Check I2C connection to controller',
-              'Verify sensor address is correct (0x76 or 0x77)',
-              'Ensure sensor is not in sealed container',
-              'Calibrate for local altitude if needed',
-              'Replace if readings are frozen',
-            ],
-            tips: [
-              'Pressure changes indicate weather patterns',
-              'Falling pressure = storm approaching',
-              'Rising pressure = improving weather',
-              'Minimal impact on plant growth directly',
-            ],
-          ),
-          _buildSensorCard(
-            context,
-            title: 'Light Sensor (Photoresistor)',
-            icon: Icons.wb_sunny,
-            color: Colors.amber,
-            description: 'Measures ambient light levels',
-            optimalRange: '40-80% (varies by plant)',
-            acceptableRange: '20-100%',
-            troubleshooting: [
-              'Check if sensor is covered or shadowed',
-              'Verify ADC reading is changing with light',
-              'Clean sensor surface from dust',
-              'Recalibrate min/max values if needed',
-              'Replace if readings stuck at one value',
-            ],
-            tips: [
-              'Higher raw value = more light',
-              'Position to represent average light',
-              'Supplement with grow lights if low',
-              'Different plants need different light levels',
-            ],
-          ),
-          const SizedBox(height: 16),
-          Card(
-            color: Colors.blue.shade700,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: Colors.white),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'General Troubleshooting Tips',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+          const SizedBox(height: 24),
+          
+          // Sensors List
+          Expanded(
+            child: ListView.builder(
+              itemCount: sensors.length,
+              itemBuilder: (context, index) {
+                final sensor = sensors[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    leading: CircleAvatar(
+                      backgroundColor: (sensor['color'] as Color).withOpacity(0.1),
+                      child: Icon(
+                        sensor['icon'] as IconData,
+                        color: sensor['color'] as Color,
                       ),
-                    ],
+                    ),
+                    title: Text(
+                      sensor['title'] as String,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    subtitle: Text(
+                      sensor['description'] as String,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      _showSensorDetails(context, sensor);
+                    },
                   ),
-                  const SizedBox(height: 12),
-                  _buildTipItem('Always power off system before touching sensors'),
-                  _buildTipItem('Document baseline values when sensors are new'),
-                  _buildTipItem('Regular maintenance schedule prevents issues'),
-                  _buildTipItem('Keep spare sensors for critical measurements'),
-                  _buildTipItem('Test sensors individually to isolate problems'),
-                  _buildTipItem('Check wiring and connections first - most common issue'),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            color: Colors.red.shade50,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.emergency, color: Colors.red.shade700),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Emergency Response',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildEmergencyItem('Flame Detected', 'Evacuate and call fire department'),
-                  _buildEmergencyItem('CO >750 ppm', 'Ventilate immediately, evacuate area'),
-                  _buildEmergencyItem('Gas >750 ppm', 'No sparks/flames, ventilate, check for leaks'),
-                  _buildEmergencyItem('Temp >35°C', 'Emergency cooling, protect plants'),
-                  _buildEmergencyItem('Temp <10°C', 'Emergency heating, cover sensitive plants'),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ],
@@ -272,147 +179,177 @@ class SensorInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSensorCard(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required Color color,
-    required String description,
-    required String optimalRange,
-    required String acceptableRange,
-    required List<String> troubleshooting,
-    required List<String> tips,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: ExpansionTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.2),
-          child: Icon(icon, color: color),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+  void _showSensorDetails(BuildContext context, Map<String, dynamic> sensor) {
+    final theme = Theme.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header with icon
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: (sensor['color'] as Color).withOpacity(0.1),
+                        child: Icon(
+                          sensor['icon'] as IconData,
+                          color: sensor['color'] as Color,
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              sensor['title'] as String,
+                              style: theme.textTheme.headlineSmall,
+                            ),
+                            Text(
+                              'Unit: ${sensor['unit']}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Description
+                  Text(
+                    'About',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    sensor['description'] as String,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Purpose
+                  Text(
+                    'Purpose',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    sensor['purpose'] as String,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Optimal Ranges (conditionally rendered)
+                  ..._buildRangesSection(context, sensor),
+                  const SizedBox(height: 24),
+                  
+                  // Close button
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        subtitle: Text(description),
+      ),
+    );
+  }
+
+  List<Widget> _buildRangesSection(BuildContext context, Map<String, dynamic> sensor) {
+    final theme = Theme.of(context);
+    String? optimal = sensor['optimal'] as String?;
+    String? acceptable = sensor['acceptable'] as String?;
+    String? critical = sensor['critical'] as String?;
+
+    bool has(String? s) {
+      if (s == null) return false;
+      final t = s.trim();
+      if (t.isEmpty) return false;
+      if (t.toLowerCase() == 'n/a') return false;
+      if (t.toLowerCase().contains('informational')) return false;
+      return true;
+    }
+
+    if (!(has(optimal) || has(acceptable) || has(critical))) {
+      // No ranges to display for this sensor
+      return [];
+    }
+
+    return [
+      Text(
+        'Optimal Ranges',
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      const SizedBox(height: 12),
+      if (has(optimal)) _buildRangeCard(context, 'Optimal', optimal!, Colors.green),
+      if (has(optimal)) const SizedBox(height: 8),
+      if (has(acceptable)) _buildRangeCard(context, 'Acceptable', acceptable!, Colors.orange),
+      if (has(acceptable)) const SizedBox(height: 8),
+      if (has(critical)) _buildRangeCard(context, 'Critical', critical!, Colors.red),
+    ];
+  }
+
+  Widget _buildRangeCard(BuildContext context, String label, String range, Color color) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoRow('Optimal Range', optimalRange, Colors.green),
-                const SizedBox(height: 8),
-                _buildInfoRow('Acceptable Range', acceptableRange, Colors.orange),
-                const Divider(height: 24),
-                const Text(
-                  'Troubleshooting Steps:',
-                  style: TextStyle(
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    color: color,
                   ),
                 ),
-                const SizedBox(height: 8),
-                ...troubleshooting.asMap().entries.map((entry) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${entry.key + 1}. ',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Expanded(child: Text(entry.value)),
-                      ],
-                    ),
-                  );
-                }),
-                const Divider(height: 24),
-                const Text(
-                  'Tips & Notes:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                const SizedBox(height: 2),
+                Text(
+                  range,
+                  style: theme.textTheme.bodyMedium,
                 ),
-                const SizedBox(height: 8),
-                ...tips.map((tip) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.lightbulb_outline, size: 16, color: Colors.amber),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(tip)),
-                        ],
-                      ),
-                    )),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, Color color) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 140,
-          child: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: TextStyle(color: color, fontWeight: FontWeight.w500),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTipItem(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.check_circle, size: 16, color: Colors.white),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: const TextStyle(color: Colors.white))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmergencyItem(String condition, String action) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.warning, size: 16, color: Colors.red),
-          const SizedBox(width: 8),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(color: Colors.black87),
-                children: [
-                  TextSpan(
-                    text: '$condition: ',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  TextSpan(text: action),
-                ],
-              ),
             ),
           ),
         ],

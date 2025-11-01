@@ -64,14 +64,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ? 'Successfully connected to server!'
             : 'Failed to connect to server. Please check the IP address.';
       });
-
-      if (isConnected) {
-        // Wait a bit so the user sees the success message
-        await Future.delayed(const Duration(seconds: 1));
-        if (mounted) {
-          Navigator.of(context).pop(true); // Return true to indicate success
-        }
-      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -83,96 +75,171 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Server Settings'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Enter your server IP address',
-                style: TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _serverIpController,
-                decoration: const InputDecoration(
-                  labelText: 'Server IP Address',
-                  hintText: 'e.g., 192.168.1.100',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter an IP address';
-                  }
-                  
-                  // Simple IP address validation
-                  final ipRegex = RegExp(
-                    r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$'
-                  );
-                  if (!ipRegex.hasMatch(value)) {
-                    return 'Please enter a valid IP address';
-                  }
-                  
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _saveServerIP,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                ),
-                child: _isLoading 
-                  ? const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    )
-                  : const Text('Connect to Server'),
-              ),
-              if (_statusMessage != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _isSuccess ? Colors.green[100] : Colors.red[100],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _statusMessage!,
-                    style: TextStyle(
-                      color: _isSuccess ? Colors.green[900] : Colors.red[900],
+    final theme = Theme.of(context);
+    
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Text(
+            'Settings',
+            style: theme.textTheme.displayMedium?.copyWith(fontSize: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Configure your server connection',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 32),
+          
+          // Settings Form
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.dns,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Server Configuration',
+                                style: theme.textTheme.titleLarge,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Enter your server IP address to connect to the greenhouse monitoring system.',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _serverIpController,
+                            decoration: const InputDecoration(
+                              labelText: 'Server IP Address',
+                              hintText: 'e.g., 192.168.1.100',
+                              prefixIcon: Icon(Icons.computer),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter an IP address';
+                              }
+                              
+                              // Simple IP address validation
+                              final ipRegex = RegExp(
+                                r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$'
+                              );
+                              if (!ipRegex.hasMatch(value)) {
+                                return 'Please enter a valid IP address';
+                              }
+                              
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _isLoading ? null : _saveServerIP,
+                              icon: _isLoading 
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Icon(Icons.save),
+                              label: Text(_isLoading ? 'Connecting...' : 'Save & Test Connection'),
+                            ),
+                          ),
+                          if (_statusMessage != null) ...[
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: _isSuccess 
+                                  ? Colors.green.withOpacity(0.1)
+                                  : Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _isSuccess ? Colors.green : Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _isSuccess ? Icons.check_circle : Icons.error,
+                                    color: _isSuccess ? Colors.green : Colors.red,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      _statusMessage!,
+                                      style: TextStyle(
+                                        color: _isSuccess ? Colors.green : Colors.red,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 16),
-              const Text(
-                'Instructions:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  const SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Instructions',
+                                style: theme.textTheme.titleLarge,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            '1. Make sure your Flask server is running\n'
+                            '2. Enter your computer\'s IP address on the same network\n'
+                            '3. Make sure your device and computer are on the same WiFi network\n\n'
+                            'Note: You can find your computer\'s IP address by running "ipconfig" in Command Prompt on Windows or "ifconfig" in Terminal on Mac/Linux.',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              const Text(
-                '1. Make sure your Flask server is running\n'
-                '2. Enter your computer\'s IP address on the same network\n'
-                '3. Make sure your tablet and computer are on the same WiFi network',
-                style: TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Note: You can find your computer\'s IP address by running "ipconfig" in Command Prompt on Windows or "ifconfig" in Terminal on Mac/Linux.',
-                style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
