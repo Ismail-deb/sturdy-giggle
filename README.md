@@ -6,6 +6,27 @@ Smart, themeable, cross‑platform monitoring for greenhouse environments — re
 
 </div>
 
+---
+
+## ⚠️ Important: Local Testing & Development Only
+
+> **This application was developed and tested in a local development environment only.**
+>
+> **NOT deployed to:**
+> - ❌ Google Play Store
+> - ❌ Apple App Store
+> - ❌ Production cloud environments
+>
+> **Testing scope:**
+> - ✅ Local network deployment (same WiFi)
+> - ✅ Direct APK installation on Android devices
+> - ✅ Development environment testing
+> - ✅ Local MQTT broker communication
+>
+> This project is suitable for academic demonstrations, proof-of-concept implementations, and local greenhouse monitoring within a single network. For production deployment to app stores or cloud environments, additional configuration and testing would be required.
+
+---
+
 ## Overview
 
 EcoView is a full‑stack application:
