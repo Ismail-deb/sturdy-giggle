@@ -1513,11 +1513,23 @@ def export_greenhouse_report():
             elements.append(Spacer(1, 10))
             
             for i, rec in enumerate(ai_recommendations[:6], 1):
-                rec_text = f"""
-                <para leftIndent="20" spaceBefore="5" spaceAfter="5">
-                    <font color="{accent_blue.hexval()}"><b>{i}.</b></font> {rec}
-                </para>
-                """
+                # Handle both dict objects and string representations
+                if isinstance(rec, dict):
+                    title = rec.get('title', 'Recommendation')
+                    description = rec.get('description', '')
+                    rec_text = f"""
+                    <para leftIndent="20" spaceBefore="5" spaceAfter="10">
+                        <font color="{accent_blue.hexval()}"><b>{i}. {title}</b></font><br/>
+                        {description}
+                    </para>
+                    """
+                else:
+                    # Fallback for string format
+                    rec_text = f"""
+                    <para leftIndent="20" spaceBefore="5" spaceAfter="5">
+                        <font color="{accent_blue.hexval()}"><b>{i}.</b></font> {rec}
+                    </para>
+                    """
                 elements.append(Paragraph(rec_text, styles['Normal']))
             
             elements.append(Spacer(1, 30))
