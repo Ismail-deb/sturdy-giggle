@@ -44,183 +44,326 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header - with Wrap for better responsiveness on narrow screens
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return constraints.maxWidth > 300 
-                ? Row(
-                    children: [
-                      Icon(
-                        Icons.lightbulb_outline,
-                        color: Colors.amber,
-                        size: 24,
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'AI Recommendations',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.refresh),
-                        onPressed: isLoading ? null : _fetchRecommendations,
-                        tooltip: 'Refresh recommendations',
-                        iconSize: 20,
+    final theme = Theme.of(context);
+    
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Back to Dashboard',
+        ),
+        title: const Text(
+          'AI Recommendations',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.amber.withOpacity(0.1),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(
+              isLoading ? Icons.hourglass_empty_rounded : Icons.refresh_rounded,
+              color: Colors.amber[700],
+            ),
+            onPressed: isLoading ? null : _fetchRecommendations,
+            tooltip: 'Refresh recommendations',
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Modern Header Card
+            Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.amber.withOpacity(0.2),
+                  Colors.amber.withOpacity(0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.amber.withOpacity(0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Icon container
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.amber.withOpacity(0.3),
+                        Colors.amber.withOpacity(0.2),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
                     ],
-                  )
-                : Column(
+                  ),
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.amber[700],
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Text content
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.lightbulb_outline,
-                            color: Colors.amber,
-                            size: 20,
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'AI Recommendations',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                      Text(
+                        'Real-time Analysis',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Powered by advanced sensor monitoring',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                      if (lastUpdated != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 14,
+                              color: Colors.amber[700],
                             ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.refresh),
-                            onPressed: isLoading ? null : _fetchRecommendations,
-                            tooltip: 'Refresh recommendations',
-                            iconSize: 18,
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Updated ${lastUpdated?.hour}:${lastUpdated?.minute.toString().padLeft(2, '0')}',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: Colors.amber[700],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
-                  );
-            },
-          ),
-          
-          Text(
-            'Based on real-time sensor data analysis',
-            style: TextStyle(color: Colors.grey, fontSize: 13),
-          ),
-          
-          if (lastUpdated != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4.0),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return constraints.maxWidth < 200
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.access_time, size: 12, color: Colors.grey),
-                              SizedBox(width: 4),
-                              Text(
-                                'Last updated:',
-                                style: TextStyle(color: Colors.grey, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                          Padding(
-                            padding: EdgeInsets.only(left: 16),
-                            child: Text(
-                              '${lastUpdated?.hour}:${lastUpdated?.minute.toString().padLeft(2, '0')}',
-                              style: TextStyle(color: Colors.grey, fontSize: 11),
-                            ),
-                          ),
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          Icon(Icons.access_time, size: 12, color: Colors.grey),
-                          SizedBox(width: 4),
-                          Text(
-                            'Last updated: ${lastUpdated?.hour}:${lastUpdated?.minute.toString().padLeft(2, '0')}',
-                            style: TextStyle(color: Colors.grey, fontSize: 11),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      );
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
+          ),
           
-          SizedBox(height: 20),
+          const SizedBox(height: 24),
           
           // Loading State
           if (isLoading)
-            Center(
-              child: Column(
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Analyzing greenhouse data...'),
-                ],
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 60,
+                      height: 60,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.amber[600]!),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Analyzing greenhouse data...',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'AI is generating personalized recommendations',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           
           // Error State
           if (!isLoading && errorMessage.isNotEmpty)
-            Center(
-              child: Column(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.red, size: 48),
-                  SizedBox(height: 16),
-                  Text(
-                    'Error',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Expanded(
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.red.withOpacity(0.3),
+                      width: 2,
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text(errorMessage),
-                  SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _fetchRecommendations,
-                    child: Text('Try Again'),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.error_outline_rounded,
+                          color: Colors.red[700],
+                          size: 48,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Unable to Load',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        errorMessage,
+                        style: theme.textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _fetchRecommendations,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Try Again'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[600],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           
           // No Recommendations
           if (!isLoading && errorMessage.isEmpty && 
               (_recommendations == null || _recommendations!.recommendations.isEmpty))
-            Center(
-              child: Column(
-                children: [
-                  SizedBox(height: 32),
-                  Icon(Icons.check_circle_outline, color: Colors.green, size: 64),
-                  SizedBox(height: 16),
-                  Text(
-                    'All Parameters Optimal',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Expanded(
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.green.withOpacity(0.1),
+                        Colors.green.withOpacity(0.05),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.green.withOpacity(0.3),
+                      width: 2,
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Your greenhouse conditions are within optimal ranges.',
-                    textAlign: TextAlign.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.green[700],
+                          size: 64,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'All Systems Optimal',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Your greenhouse conditions are perfect!\nAll parameters are within optimal ranges.',
+                        style: theme.textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.verified_rounded,
+                              size: 18,
+                              color: Colors.green[700],
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'No action required',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: Colors.green[700],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           
@@ -237,134 +380,226 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
             ),
         ],
       ),
+    ),
     );
   }
   
   Widget _buildRecommendationCard(AIRecommendation recommendation) {
-    Color cardColor;
+    final theme = Theme.of(context);
+    
+    // Define colors based on recommendation type
+    Color accentColor;
+    Color gradientStart;
+    Color gradientEnd;
     IconData iconData;
     
-    // Set icon and color based on recommendation type
-    switch (recommendation.type) {
+    switch (recommendation.type.toLowerCase()) {
       case 'temperature':
-        cardColor = Colors.orangeAccent.withAlpha((0.2 * 255).round());
-        iconData = Icons.thermostat;
+        accentColor = Colors.orange[700]!;
+        gradientStart = Colors.orange.withOpacity(0.2);
+        gradientEnd = Colors.orange.withOpacity(0.05);
+        iconData = Icons.thermostat_rounded;
         break;
       case 'humidity':
-        cardColor = Colors.blueAccent.withAlpha((0.2 * 255).round());
-        iconData = Icons.water_drop;
+        accentColor = Colors.blue[700]!;
+        gradientStart = Colors.blue.withOpacity(0.2);
+        gradientEnd = Colors.blue.withOpacity(0.05);
+        iconData = Icons.water_drop_rounded;
         break;
       case 'co2':
-        cardColor = Colors.greenAccent.withAlpha((0.2 * 255).round());
-        iconData = Icons.air;
+        accentColor = Colors.green[700]!;
+        gradientStart = Colors.green.withOpacity(0.2);
+        gradientEnd = Colors.green.withOpacity(0.05);
+        iconData = Icons.co2_rounded;
+        break;
+      case 'soil moisture':
+      case 'soil':
+        accentColor = Colors.brown[700]!;
+        gradientStart = Colors.brown.withOpacity(0.2);
+        gradientEnd = Colors.brown.withOpacity(0.05);
+        iconData = Icons.water_outlined;
+        break;
+      case 'light':
+        accentColor = Colors.amber[700]!;
+        gradientStart = Colors.amber.withOpacity(0.2);
+        gradientEnd = Colors.amber.withOpacity(0.05);
+        iconData = Icons.wb_sunny_rounded;
         break;
       default:
-        cardColor = Colors.grey.withAlpha((0.2 * 255).round());
-        iconData = Icons.eco;
+        accentColor = Colors.grey[700]!;
+        gradientStart = Colors.grey.withOpacity(0.2);
+        gradientEnd = Colors.grey.withOpacity(0.05);
+        iconData = Icons.eco_rounded;
     }
     
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 8),
-      color: Theme.of(context).cardColor,
-      elevation: 4,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [gradientStart, gradientEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Container(
         decoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(color: cardColor.withAlpha(255), width: 5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: accentColor.withOpacity(0.3),
+            width: 2,
           ),
         ),
         child: Padding(
-          padding: EdgeInsets.all(12),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final bool isNarrow = constraints.maxWidth < 250;
-              
-              return isNarrow
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Icon container
-                      Container(
-                        padding: EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Icon(
-                          iconData,
-                          color: cardColor.withAlpha(255),
-                          size: 18,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      // Content
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            recommendation.title,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: 6),
-                          Text(
-                            recommendation.description,
-                            style: TextStyle(fontSize: 13),
-                            maxLines: 4,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+          padding: const EdgeInsets.all(18.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with icon and type
+              Row(
+                children: [
+                  // Icon container
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          accentColor.withOpacity(0.3),
+                          accentColor.withOpacity(0.2),
                         ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withOpacity(0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      iconData,
+                      color: accentColor,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  
+                  // Type badge
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accentColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        recommendation.type.toUpperCase(),
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: accentColor,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Divider
+              Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      accentColor.withOpacity(0.3),
+                      accentColor.withOpacity(0.0),
                     ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Icon container
-                      Container(
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Icon(
-                          iconData,
-                          color: cardColor.withAlpha(255),
-                          size: 20,
-                        ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Title
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: accentColor.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.star_rounded,
+                      size: 16,
+                      color: accentColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      recommendation.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                        height: 1.3,
                       ),
-                      SizedBox(width: 12),
-                      // Content
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              recommendation.title,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: 6),
-                            Text(
-                              recommendation.description,
-                              style: TextStyle(fontSize: 13),
-                              maxLines: 4,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Description
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: accentColor.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.tips_and_updates_rounded,
+                      size: 16,
+                      color: accentColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      recommendation.description,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.8),
+                        height: 1.5,
+                        fontSize: 14,
                       ),
-                    ],
-                  );
-            },
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

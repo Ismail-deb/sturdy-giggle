@@ -25,6 +25,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
   SensorAnalysis? analysis;
   String aiAnalysis = '';
   String selectedTimeRange = 'hours';
+  String selectedChartType = 'line'; // line, bar, or area
   
   final List<Map<String, String>> timeRanges = [
     {'value': 'seconds', 'label': 'Last Minute'},
@@ -34,6 +35,12 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     {'value': 'weeks', 'label': 'Last Year (Weekly)'},
     {'value': 'months', 'label': 'Last Year (Monthly)'},
     {'value': 'years', 'label': 'Last 5 Years'},
+  ];
+  
+  final List<Map<String, dynamic>> chartTypes = [
+    {'value': 'line', 'label': 'Line', 'icon': Icons.show_chart_rounded},
+    {'value': 'bar', 'label': 'Bar', 'icon': Icons.bar_chart_rounded},
+    {'value': 'area', 'label': 'Area', 'icon': Icons.area_chart_rounded},
   ];
   
   @override
@@ -376,7 +383,44 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                
+                // Chart type selector
+                Wrap(
+                  spacing: 8,
+                  children: chartTypes.map((type) {
+                    final isSelected = selectedChartType == type['value'];
+                    return FilterChip(
+                      selected: isSelected,
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            type['icon'] as IconData,
+                            size: 18,
+                            color: isSelected ? Colors.white : theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(type['label'] as String),
+                        ],
+                      ),
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() {
+                            selectedChartType = type['value'] as String;
+                          });
+                        }
+                      },
+                      selectedColor: theme.colorScheme.primary,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                
                 SizedBox(
                   height: 250,
                   child: _buildChart(),
@@ -555,7 +599,26 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
       return const Center(child: Text('No historical data available'));
     }
     
+    switch (selectedChartType) {
+      case 'bar':
+        return _buildBarChart();
+      case 'area':
+        return _buildAreaChart();
+      case 'line':
+      default:
+        return _buildLineChart();
+    }
+  }
+  
+  Widget _buildLineChart() {
+    if (analysis == null || analysis!.historicalData.isEmpty) {
+      return const Center(child: Text('No historical data available'));
+    }
+    
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600; // Mobile breakpoint
+    
     final values = analysis!.historicalData.map((dp) => dp.value).toList();
     final timestamps = analysis!.historicalData.map((dp) => dp.timestamp).toList();
     
@@ -572,7 +635,8 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     final yMax = range < 1 ? maxValue + 1 : maxValue + (range * 0.2);
     
     final timeRange = timestamps.last - timestamps.first;
-    final xInterval = timeRange > 0 ? timeRange / 5 : 1.0;
+    // Reduce number of X-axis labels on mobile to prevent overlap
+    final xInterval = timeRange > 0 ? timeRange / (isMobile ? 3 : 5) : 1.0;
     
     final chartColor = _getStatusColor(analysis!.status);
   final gridColor = theme.colorScheme.surface.withAlpha((0.3 * 255).round());
@@ -604,7 +668,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 30,
+              reservedSize: isMobile ? 40 : 30, // More space on mobile for rotated labels
               interval: xInterval,
               getTitlesWidget: (value, meta) {
                 final dt = DateTime.fromMillisecondsSinceEpoch((value * 1000).toInt());
@@ -620,12 +684,13 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
                 
                 return SideTitleWidget(
                   axisSide: meta.axisSide,
-                  space: 8.0,
+                  space: 4.0,
+                  angle: isMobile ? -0.5 : 0, // Rotate labels slightly on mobile
                   child: Text(
                     timeLabel,
                     style: TextStyle(
                       color: theme.textTheme.bodyMedium?.color,
-                      fontSize: 10,
+                      fontSize: isMobile ? 9 : 10,
                     ),
                   ),
                 );
@@ -635,17 +700,17 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 40,
+              reservedSize: isMobile ? 35 : 40, // Slightly less space on mobile
               interval: _getLeftInterval(range),
               getTitlesWidget: (value, meta) {
                 return SideTitleWidget(
                   axisSide: meta.axisSide,
-                  space: 8.0,
+                  space: 4.0,
                   child: Text(
                     value.toStringAsFixed(0),
                     style: TextStyle(
                       color: theme.textTheme.bodyMedium?.color,
-                      fontSize: 10,
+                      fontSize: isMobile ? 9 : 10,
                     ),
                   ),
                 );
@@ -678,6 +743,290 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
             belowBarData: BarAreaData(
               show: true,
               color: chartColor.withAlpha((0.2 * 255).round()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildBarChart() {
+    if (analysis == null || analysis!.historicalData.isEmpty) {
+      return const Center(child: Text('No historical data available'));
+    }
+    
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    
+    final values = analysis!.historicalData.map((dp) => dp.value).toList();
+    final timestamps = analysis!.historicalData.map((dp) => dp.timestamp).toList();
+    
+    if (values.length < 2) {
+      return const Center(child: Text('Not enough data points to display chart'));
+    }
+    
+    final minValue = values.reduce((a, b) => a < b ? a : b);
+    final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final range = maxValue - minValue;
+    
+    final yMin = range < 1 ? minValue - 1 : minValue - (range * 0.2);
+    final yMax = range < 1 ? maxValue + 1 : maxValue + (range * 0.2);
+    
+    // Calculate bar interval based on number of data points and screen size
+    final int maxLabels = isMobile ? 4 : 6;
+    final barInterval = (values.length / maxLabels).ceilToDouble();
+    
+    final chartColor = _getStatusColor(analysis!.status);
+    final gridColor = theme.colorScheme.surface.withAlpha((0.3 * 255).round());
+    
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: yMax,
+        minY: yMin,
+        groupsSpace: values.length > 20 ? 2 : 12,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: _getLeftInterval(range),
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: gridColor,
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: isMobile ? 45 : 32,
+              interval: barInterval,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= timestamps.length) {
+                  return const SizedBox.shrink();
+                }
+                
+                // Only show labels at interval points to prevent overlap
+                if (index % barInterval.toInt() != 0) {
+                  return const SizedBox.shrink();
+                }
+                
+                final dt = DateTime.fromMillisecondsSinceEpoch((timestamps[index] * 1000).toInt());
+                String timeLabel;
+                if (selectedTimeRange == 'seconds' || selectedTimeRange == 'minutes') {
+                  timeLabel = DateFormat.Hms().format(dt);
+                } else if (selectedTimeRange == 'hours') {
+                  timeLabel = DateFormat.Hm().format(dt);
+                } else {
+                  timeLabel = DateFormat.Md().format(dt);
+                }
+                
+                return SideTitleWidget(
+                  axisSide: meta.axisSide,
+                  space: 4.0,
+                  angle: isMobile ? -0.5 : 0,
+                  child: Text(
+                    timeLabel,
+                    style: TextStyle(
+                      color: theme.textTheme.bodyMedium?.color,
+                      fontSize: isMobile ? 8 : 10,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: isMobile ? 35 : 40,
+              interval: _getLeftInterval(range),
+              getTitlesWidget: (value, meta) {
+                return SideTitleWidget(
+                  axisSide: meta.axisSide,
+                  space: 4.0,
+                  child: Text(
+                    value.toStringAsFixed(0),
+                    style: TextStyle(
+                      color: theme.textTheme.bodyMedium?.color,
+                      fontSize: isMobile ? 9 : 10,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: gridColor, width: 1),
+        ),
+        barGroups: List.generate(
+          values.length,
+          (index) => BarChartGroupData(
+            x: index,
+            barRods: [
+              BarChartRodData(
+                toY: values[index],
+                color: chartColor,
+                width: values.length > 30 ? 8 : (values.length > 15 ? 12 : 16),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                backDrawRodData: BackgroundBarChartRodData(
+                  show: true,
+                  toY: yMax,
+                  color: gridColor.withAlpha((0.1 * 255).round()),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildAreaChart() {
+    if (analysis == null || analysis!.historicalData.isEmpty) {
+      return const Center(child: Text('No historical data available'));
+    }
+    
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    
+    final values = analysis!.historicalData.map((dp) => dp.value).toList();
+    final timestamps = analysis!.historicalData.map((dp) => dp.timestamp).toList();
+    
+    if (values.length < 2) {
+      return const Center(child: Text('Not enough data points to display chart'));
+    }
+    
+    final minValue = values.reduce((a, b) => a < b ? a : b);
+    final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final range = maxValue - minValue;
+    
+    final yMin = range < 1 ? minValue - 1 : minValue - (range * 0.2);
+    final yMax = range < 1 ? maxValue + 1 : maxValue + (range * 0.2);
+    
+    final timeRange = timestamps.last - timestamps.first;
+    final xInterval = timeRange > 0 ? timeRange / (isMobile ? 3 : 5) : 1.0;
+    
+    final chartColor = _getStatusColor(analysis!.status);
+    final gridColor = theme.colorScheme.surface.withAlpha((0.3 * 255).round());
+    
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: _getLeftInterval(range),
+          verticalInterval: xInterval,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: gridColor,
+              strokeWidth: 1,
+            );
+          },
+          getDrawingVerticalLine: (value) {
+            return FlLine(
+              color: gridColor,
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: isMobile ? 40 : 30,
+              interval: xInterval,
+              getTitlesWidget: (value, meta) {
+                final dt = DateTime.fromMillisecondsSinceEpoch((value * 1000).toInt());
+                String timeLabel;
+                if (selectedTimeRange == 'seconds' || selectedTimeRange == 'minutes') {
+                  timeLabel = DateFormat.Hms().format(dt);
+                } else if (selectedTimeRange == 'hours') {
+                  timeLabel = DateFormat.Hm().format(dt);
+                } else {
+                  timeLabel = DateFormat.Md().format(dt);
+                }
+                
+                return SideTitleWidget(
+                  axisSide: meta.axisSide,
+                  space: 4.0,
+                  angle: isMobile ? -0.5 : 0,
+                  child: Text(
+                    timeLabel,
+                    style: TextStyle(
+                      color: theme.textTheme.bodyMedium?.color,
+                      fontSize: isMobile ? 9 : 10,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: isMobile ? 35 : 40,
+              interval: _getLeftInterval(range),
+              getTitlesWidget: (value, meta) {
+                return SideTitleWidget(
+                  axisSide: meta.axisSide,
+                  space: 4.0,
+                  child: Text(
+                    value.toStringAsFixed(0),
+                    style: TextStyle(
+                      color: theme.textTheme.bodyMedium?.color,
+                      fontSize: isMobile ? 9 : 10,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: gridColor, width: 1),
+        ),
+        minX: timestamps.first,
+        maxX: timestamps.last,
+        minY: yMin,
+        maxY: yMax,
+        lineBarsData: [
+          LineChartBarData(
+            spots: List.generate(
+              values.length,
+              (index) => FlSpot(
+                timestamps[index],
+                values[index],
+              ),
+            ),
+            isCurved: true,
+            color: chartColor,
+            barWidth: 2,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  chartColor.withAlpha((0.5 * 255).round()),
+                  chartColor.withAlpha((0.1 * 255).round()),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
           ),
         ],

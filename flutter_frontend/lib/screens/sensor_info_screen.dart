@@ -112,7 +112,7 @@ class SensorInfoScreen extends StatelessWidget {
         'icon': Icons.local_fire_department,
         'color': Colors.red,
         'description': 'Optical sensor detects presence of flames',
-        'unit': 'Boolean',
+        'unit': 'Status',
         'optimal': 'No flame detected',
         'acceptable': 'N/A',
         'critical': 'Flame detected',
@@ -125,50 +125,186 @@ class SensorInfoScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Text(
-            'Sensors',
-            style: theme.textTheme.displayMedium?.copyWith(fontSize: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Learn about each sensor and their optimal ranges',
-            style: theme.textTheme.bodyMedium,
+          // Header with modern styling
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primaryContainer,
+                  theme.colorScheme.primaryContainer.withOpacity(0.7),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.sensors_rounded,
+                    size: 32,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sensor Guide',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Learn about each sensor and their optimal ranges',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer.withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           
-          // Sensors List
+          // Sensors List with modern cards
           Expanded(
             child: ListView.builder(
               itemCount: sensors.length,
               itemBuilder: (context, index) {
                 final sensor = sensors[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    leading: CircleAvatar(
-                      backgroundColor: (sensor['color'] as Color).withAlpha((0.1 * 255).round()),
-                      child: Icon(
-                        sensor['icon'] as IconData,
-                        color: sensor['color'] as Color,
+                final sensorColor = sensor['color'] as Color;
+                
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: Material(
+                    elevation: 2,
+                    borderRadius: BorderRadius.circular(20),
+                    shadowColor: sensorColor.withOpacity(0.2),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => _showSensorDetails(context, sensor),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              sensorColor.withOpacity(0.05),
+                              sensorColor.withOpacity(0.02),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: sensorColor.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            // Icon container
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    sensorColor.withOpacity(0.2),
+                                    sensorColor.withOpacity(0.1),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: sensorColor.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                sensor['icon'] as IconData,
+                                color: sensorColor,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            // Text content
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    sensor['title'] as String,
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    sensor['description'] as String,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Unit badge
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: sensorColor.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      'Unit: ${sensor['unit']}',
+                                      style: theme.textTheme.labelSmall?.copyWith(
+                                        color: sensorColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Arrow icon
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              color: sensorColor.withOpacity(0.5),
+                              size: 20,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    title: Text(
-                      sensor['title'] as String,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    subtitle: Text(
-                      sensor['description'] as String,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      _showSensorDetails(context, sensor);
-                    },
                   ),
                 );
               },
@@ -181,29 +317,64 @@ class SensorInfoScreen extends StatelessWidget {
 
   void _showSensorDetails(BuildContext context, Map<String, dynamic> sensor) {
     final theme = Theme.of(context);
+    final sensorColor = sensor['color'] as Color;
     
     showDialog(
       context: context,
       builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
           child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Header with icon
-                  Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with gradient background
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        sensorColor.withOpacity(0.15),
+                        sensorColor.withOpacity(0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(28),
+                      topRight: Radius.circular(28),
+                    ),
+                  ),
+                  child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: (sensor['color'] as Color).withAlpha((0.1 * 255).round()),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              sensorColor.withOpacity(0.3),
+                              sensorColor.withOpacity(0.2),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: sensorColor.withOpacity(0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
                         child: Icon(
                           sensor['icon'] as IconData,
-                          color: sensor['color'] as Color,
-                          size: 32,
+                          color: sensorColor,
+                          size: 36,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -213,63 +384,73 @@ class SensorInfoScreen extends StatelessWidget {
                           children: [
                             Text(
                               sensor['title'] as String,
-                              style: theme.textTheme.headlineSmall,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onSurface,
+                              ),
                             ),
-                            Text(
-                              'Unit: ${sensor['unit']}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.secondary,
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: sensorColor.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Unit: ${sensor['unit']}',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: sensorColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded),
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  
-                  // Description
-                  Text(
-                    'About',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                ),
+                
+                // Content
+                Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Description section
+                      _buildInfoSection(
+                        context,
+                        'About',
+                        sensor['description'] as String,
+                        Icons.info_outline_rounded,
+                        sensorColor,
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Purpose section
+                      _buildInfoSection(
+                        context,
+                        'Purpose',
+                        sensor['purpose'] as String,
+                        Icons.lightbulb_outline_rounded,
+                        sensorColor,
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Optimal Ranges (conditionally rendered)
+                      ..._buildRangesSection(context, sensor, sensorColor),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    sensor['description'] as String,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Purpose
-                  Text(
-                    'Purpose',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    sensor['purpose'] as String,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Optimal Ranges (conditionally rendered)
-                  ..._buildRangesSection(context, sensor),
-                  const SizedBox(height: 24),
-                  
-                  // Close button
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Close'),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -277,7 +458,61 @@ class SensorInfoScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildRangesSection(BuildContext context, Map<String, dynamic> sensor) {
+  Widget _buildInfoSection(
+    BuildContext context,
+    String title,
+    String content,
+    IconData icon,
+    Color color,
+  ) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: color,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            content,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              height: 1.6,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildRangesSection(
+    BuildContext context,
+    Map<String, dynamic> sensor,
+    Color sensorColor,
+  ) {
     final theme = Theme.of(context);
     String? optimal = sensor['optimal'] as String?;
     String? acceptable = sensor['acceptable'] as String?;
@@ -293,22 +528,32 @@ class SensorInfoScreen extends StatelessWidget {
     }
 
     if (!(has(optimal) || has(acceptable) || has(critical))) {
-      // No ranges to display for this sensor
       return [];
     }
 
     return [
-      Text(
-        'Optimal Ranges',
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
+      Row(
+        children: [
+          Icon(
+            Icons.speed_rounded,
+            size: 20,
+            color: sensorColor,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Optimal Ranges',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: sensorColor,
+            ),
+          ),
+        ],
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 16),
       if (has(optimal)) _buildRangeCard(context, 'Optimal', optimal!, Colors.green),
-      if (has(optimal)) const SizedBox(height: 8),
+      if (has(optimal)) const SizedBox(height: 12),
       if (has(acceptable)) _buildRangeCard(context, 'Acceptable', acceptable!, Colors.orange),
-      if (has(acceptable)) const SizedBox(height: 8),
+      if (has(acceptable)) const SizedBox(height: 12),
       if (has(critical)) _buildRangeCard(context, 'Critical', critical!, Colors.red),
     ];
   }
@@ -316,23 +561,55 @@ class SensorInfoScreen extends StatelessWidget {
   Widget _buildRangeCard(BuildContext context, String label, String range, Color color) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withAlpha((0.1 * 255).round()),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withAlpha((0.3 * 255).round())),
+        gradient: LinearGradient(
+          colors: [
+            color.withOpacity(0.12),
+            color.withOpacity(0.06),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 8,
-            height: 8,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color,
+              color: color.withOpacity(0.2),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              label == 'Optimal'
+                  ? Icons.check_circle_rounded
+                  : label == 'Acceptable'
+                      ? Icons.info_rounded
+                      : Icons.warning_rounded,
+              color: color,
+              size: 20,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,12 +619,16 @@ class SensorInfoScreen extends StatelessWidget {
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: color,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   range,
-                  style: theme.textTheme.bodyMedium,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ],
             ),

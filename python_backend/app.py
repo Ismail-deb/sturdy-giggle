@@ -1722,6 +1722,98 @@ def export_greenhouse_report():
         elements.append(Paragraph(humidity_advice, styles['Normal']))
         elements.append(Spacer(1, 20))
         
+        # Soil Moisture improvements
+        soil_moisture_value = all_analysis['soil_moisture']['value']
+        soil_moisture_status = all_analysis['soil_moisture']['status']
+        
+        elements.append(Paragraph("🌱 Soil Moisture Management", section_heading_style))
+        elements.append(Spacer(1, 5))
+        if soil_moisture_value < 30:
+            soil_advice = """
+            <b>URGENT - Soil Moisture Too Low:</b><br/>
+            <b>Immediate Actions:</b><br/>
+            • Water plants immediately with room-temperature water<br/>
+            • Check irrigation system for malfunctions or clogs<br/>
+            • Inspect soil for hydrophobic conditions (water running off surface)<br/>
+            • Add mulch to reduce evaporation<br/>
+            • Move sensitive plants to shadier areas temporarily<br/>
+            <br/>
+            <b>Short-term Solutions:</b><br/>
+            • Increase watering frequency or duration<br/>
+            • Add wetting agent to soil if hydrophobic<br/>
+            • Check for root damage or soil compaction<br/>
+            • Apply organic matter or compost to improve water retention<br/>
+            • Group plants by water needs for efficient irrigation<br/>
+            <br/>
+            <b>Long-term Improvements:</b><br/>
+            • Install automated drip irrigation with timers<br/>
+            • Add soil moisture sensors for real-time monitoring<br/>
+            • Improve soil structure with organic amendments (compost, peat, coco coir)<br/>
+            • Install smart controllers that adjust watering based on sensor data<br/>
+            • Consider sub-irrigation or self-watering systems<br/>
+            • Apply 2-3 inch mulch layer to retain moisture
+            """
+        elif soil_moisture_value > 70:
+            soil_advice = """
+            <b>URGENT - Soil Moisture Too High:</b><br/>
+            <b>Immediate Actions:</b><br/>
+            • Stop all watering immediately<br/>
+            • Improve drainage by tilting pots or adding drain holes<br/>
+            • Increase air circulation around root zone<br/>
+            • Check for standing water beneath containers<br/>
+            • Remove waterlogged plants to prevent root rot<br/>
+            <br/>
+            <b>Short-term Solutions:</b><br/>
+            • Reduce watering frequency and duration<br/>
+            • Improve drainage with perlite, sand, or gravel amendments<br/>
+            • Elevate containers on pot feet or blocks<br/>
+            • Inspect for root rot (brown, mushy roots) and trim if necessary<br/>
+            • Increase ventilation to promote evaporation<br/>
+            • Check irrigation system for leaks or stuck valves<br/>
+            <br/>
+            <b>Long-term Improvements:</b><br/>
+            • Install proper drainage systems (French drains, gravel beds)<br/>
+            • Use well-draining soil mixes (30-40% perlite/pumice)<br/>
+            • Implement raised beds or benches for better drainage<br/>
+            • Install soil moisture sensors to prevent overwatering<br/>
+            • Use moisture meters before watering decisions<br/>
+            • Consider drip irrigation with pressure-compensating emitters<br/>
+            • Ensure proper greenhouse slope for water runoff
+            """
+        elif soil_moisture_value < 40:
+            soil_advice = """
+            <b>Soil Moisture Slightly Low:</b><br/>
+            • Increase watering frequency by 10-20%<br/>
+            • Check soil moisture at root depth (2-4 inches), not just surface<br/>
+            • Add thin mulch layer to reduce evaporation<br/>
+            • Monitor plants for wilting, especially during hot periods<br/>
+            • Consider installing moisture sensors for precise monitoring<br/>
+            • Water early morning for best absorption
+            """
+        elif soil_moisture_value > 60:
+            soil_advice = """
+            <b>Soil Moisture Slightly High:</b><br/>
+            • Reduce watering frequency by 10-20%<br/>
+            • Ensure adequate drainage in containers and beds<br/>
+            • Increase air circulation to promote evaporation<br/>
+            • Monitor for signs of overwatering (yellowing leaves, wilting despite wet soil)<br/>
+            • Check root health if problems persist<br/>
+            • Allow soil to dry slightly between waterings
+            """
+        else:
+            soil_advice = """
+            <b>Soil Moisture Optimal:</b><br/>
+            • Continue current watering practices<br/>
+            • Maintain consistent moisture levels for best growth<br/>
+            • Monitor seasonal changes and adjust as needed<br/>
+            • Keep records of watering patterns for future reference<br/>
+            • Adjust for different plant growth stages (seedlings need less, fruiting plants need more)<br/>
+            • Regular soil testing to ensure proper nutrient availability
+            """
+        
+        elements.append(Paragraph(soil_advice, styles['Normal']))
+        elements.append(Spacer(1, 20))
+        
         # Air Quality and Gas Sensors
         air_quality_value = all_analysis['air_quality']['value']
         air_quality_status = all_analysis['air_quality']['status']
@@ -1964,24 +2056,28 @@ def export_greenhouse_report():
         elements.append(Paragraph(f"Last {min(24, len(readings))} readings from APEX database", styles['Normal']))
         elements.append(Spacer(1, 15))
         
-        history_table_data = [['Time', 'Temp\n(°C)', 'Humidity\n(%)', 'Light\n(lux)', 'CO2\n(ppm)', 'Pressure\n(hPa)']]
+        history_table_data = [['Time', 'Temp\n(°C)', 'Humidity\n(%)', 'Soil\n(%)', 'Light\n(lux)', 'CO2\n(ppm)']]
         for reading in readings[:24]:
-            timestamp = datetime.fromtimestamp(reading.get('timestamp', time.time())).strftime('%m/%d %H:%M')
-            temp = (reading.get('temperature_bmp280', 0) + reading.get('temperature_dht22', 0)) / 2
-            humidity = reading.get('humidity', 0)
-            light = reading.get('light', 0)
-            co2 = reading.get('co2_level', 0)
-            pressure = reading.get('pressure', 0)
+            # Merge raw reading with derived data to get calculated fields like light and co2_level
+            reading_data = {**reading, **build_derived_from_reading(reading)}
+            
+            timestamp = datetime.fromtimestamp(reading_data.get('timestamp', time.time())).strftime('%m/%d %H:%M')
+            temp = (reading_data.get('temperature_bmp280', 0) + reading_data.get('temperature_dht22', 0)) / 2
+            humidity = reading_data.get('humidity', 0)
+            # Get soil moisture from multiple possible field names
+            soil_moisture = reading_data.get('sloi_moisture') or reading_data.get('moisture') or reading_data.get('soil_moisture', 0)
+            light = reading_data.get('light', 0)
+            co2 = reading_data.get('co2_level', 0)
             history_table_data.append([
                 timestamp, 
                 f"{temp:.1f}", 
-                f"{humidity:.1f}", 
+                f"{humidity:.1f}",
+                f"{soil_moisture:.1f}",
                 f"{light:.0f}",
-                f"{co2:.0f}",
-                f"{pressure:.1f}"
+                f"{co2:.0f}"
             ])
         
-        history_table = Table(history_table_data, colWidths=[1*inch, 0.85*inch, 0.85*inch, 0.85*inch, 0.85*inch, 1*inch])
+        history_table = Table(history_table_data, colWidths=[1*inch, 0.75*inch, 0.75*inch, 0.65*inch, 0.85*inch, 0.85*inch])
         history_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), accent_blue),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),

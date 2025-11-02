@@ -106,14 +106,14 @@ flutter:
 # Flutter Launcher Icons configuration
 flutter_launcher_icons:
   android: true
-  ios: true
+  ios: false  # Keep iOS unchanged since app displays correctly
   web:
-    generate: true
+    generate: false  # Keep web unchanged
   windows:
-    generate: true
+    generate: false  # Keep windows unchanged
   macos:
-    generate: true
+    generate: false  # Keep macOS unchanged
   image_path: "assets/app_icon.png"
-  # You can also specify different icons for different platforms
-  # adaptive_icon_background: "#FFFFFF"
-  # adaptive_icon_foreground: "assets/app_icon_foreground.png"
+  adaptive_icon_background: "#FFF5E6"  # Beige background matching app theme
+  adaptive_icon_foreground: "assets/app_icon.png"  # Use same icon as foreground
+  # This ensures the APK icon updates while leaving the in-app icon unchanged
