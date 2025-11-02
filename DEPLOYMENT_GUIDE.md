@@ -1,74 +1,211 @@
-# EcoView Greenhouse Monitoring System - Deployment Guide
+# EcoView - Local Deployment Guide# EcoView - Local Deployment Guide
 
-## Table of Contents
-1. [Overview](#overview)
-2. [Important Note: Local Testing Only](#important-note-local-testing-only)
-3. [System Requirements](#system-requirements)
-4. [Architecture Overview](#architecture-overview)
-5. [Pre-Deployment Checklist](#pre-deployment-checklist)
-6. [Backend Deployment](#backend-deployment)
-7. [Frontend Deployment](#frontend-deployment)
-8. [Hardware Setup](#hardware-setup)
-9. [Configuration](#configuration)
-10. [Testing](#testing)
-11. [Troubleshooting](#troubleshooting)
-12. [Maintenance & Updates](#maintenance--updates)
-13. [Security Best Practices](#security-best-practices)
 
----
 
-## Overview
+**Scope:** Single-network deployment for development, testing, and local monitoring only.**Scope:** Single-network deployment for development, testing, and local monitoring only.
 
-The EcoView Greenhouse Monitoring System consists of three main components:
-- **Python Backend**: Flask-based REST API with MQTT integration
-- **Flutter Frontend**: Cross-platform mobile application
-- **IoT Hardware**: ESP32/Arduino with various sensors
 
-This guide provides step-by-step instructions for deploying and configuring all components.
 
----
+## System Requirements## System Requirements
 
-## Important Note: Local Testing Only
 
-> **⚠️ IMPORTANT DEPLOYMENT NOTICE**
->
-> This application was developed and tested in a **local development environment only**. The system has NOT been:
-> - ❌ Deployed to Google Play Store
-> - ❌ Deployed to Apple App Store
-> - ❌ Tested in production cloud environments
-> - ❌ Configured for public internet access
->
-> **Current Testing Scope:**
-> - ✅ Local network deployment (same WiFi network)
-> - ✅ Direct APK installation on Android devices
-> - ✅ Development environment testing
-> - ✅ Local MQTT broker communication
->
-> **For Production Deployment:**
-> If you plan to deploy this system for production use, you will need to:
-> 1. Configure proper SSL/TLS certificates for HTTPS
-> 2. Set up a production-grade database (PostgreSQL, MySQL)
+
+- **Backend:** Windows 10/11, macOS, or Linux; Python 3.10+; 100MB free space- **Backend:** Windows 10/11, macOS, or Linux; Python 3.10+; 100MB free space
+
+- **Frontend:** Windows desktop, macOS, Linux, or Chrome web- **Frontend:** Windows desktop, macOS, Linux, or Chrome web
+
+- **Network:** Devices on same WiFi network- **Network:** Devices on same WiFi network
+
+- **APEX:** Access to Oracle APEX greenhouse data API- **APEX:** Access to Oracle APEX greenhouse data API
+
+
+
+## Setup: Backend (Windows Example)## Setup: Backend (Windows Example)
+
+
+
+1. **Install Python dependencies:**1. **Install Python dependencies:**
+
+```powershell```powershell
+
+cd python_backendcd python_backend
+
+pip install flask flask-cors requests python-dotenv reportlab==4.4.4pip install flask flask-cors requests python-dotenv reportlab==4.4.4
+
+``````
+
+
+
+2. **Create `.env`:**2. **Create `.env`:**
+
+``````
+
+ORACLE_APEX_URL=https://oracleapex.com/ords/g3_data/iot/greenhouse/ORACLE_APEX_URL=https://oracleapex.com/ords/g3_data/iot/greenhouse/
+
+GEMINI_API_KEY=sk-... # OptionalGEMINI_API_KEY=sk-... # Optional
+
+``````
+
+
+
+3. **Run:**3. **Run:**
+
+```powershell```powershell
+
+python app.pypython app.py
+
+``````
+
+- Backend listens on `0.0.0.0:5000` (all network interfaces)- Backend listens on `0.0.0.0:5000` (all network interfaces)
+
+- Broadcasts to local network every 5 seconds: `GREENHOUSE_SERVER:<ip>:5000`- Broadcasts to local network every 5 seconds: `GREENHOUSE_SERVER:<ip>:5000`
+
+- Polls APEX every 3 seconds- Polls APEX every 3 seconds
+
+
+
+## Setup: Frontend## Setup: Frontend
+
+
+
+**Option A: Chrome (Fastest for testing)****Option A: Chrome (Fastest for testing)**
+
+```powershell```powershell
+
+cd flutter_frontendcd flutter_frontend
+
+flutter pub getflutter pub get
+
+flutter run -d chromeflutter run -d chrome
+
+``````
+
+
+
+**Option B: Windows Desktop****Option B: Windows Desktop**
+
+```powershell```powershell
+
+flutter run -d windowsflutter run -d windows
+
+``````
+
+
+
+**Option C: Android APK****Option C: Android APK**
+
+```powershell```powershell
+
+flutter build apk --releaseflutter build apk --release
+
+# Then sideload to device or run via Android Studio# Then sideload to device or run via Android Studio
+
+``````
+
+
+
+## Network Discovery## Network Discovery
+
+
+
+The app auto-discovers the backend via UDP broadcast. To verify:The app auto-discovers the backend via UDP broadcast. To verify:
+
+
+
+1. Backend running on local IP (e.g., `192.168.1.100`)1. Backend running on local IP (e.g., `192.168.1.100`)
+
+2. Frontend on same network (same WiFi)2. Frontend on same network (same WiFi)
+
+3. If auto-discovery fails, manually set IP in app Settings3. If auto-discovery fails, manually set IP in app Settings
+
+
+
+**Check backend health:****Check backend health:**
+
+``````
+
+http://<backend-ip>:5000/api/healthhttp://<backend-ip>:5000/api/health
+
+``````
+
+
+
+## Useful Commands## Useful Commands
+
+
+
+| Task | Command || Task | Command |
+
+|------|---------||------|---------|
+
+| Start backend | `cd python_backend; python app.py` || Start backend | `cd python_backend; python app.py` |
+
+| Rebuild Flutter | `cd flutter_frontend; flutter pub get; flutter run -d chrome` || Rebuild Flutter | `cd flutter_frontend; flutter pub get; flutter run -d chrome` |
+
+| Check backend logs | Watch terminal where `python app.py` runs || Check backend logs | Watch terminal where `python app.py` runs |
+
+| Generate PDF report | Visit `/api/export-report` in browser after app runs || Generate PDF report | Visit `/api/export-report` in browser after app runs |
+
+| Restart everything | Kill Python process, stop Flutter, run both again || Restart everything | Kill Python process, stop Flutter, run both again |
+
+
+
+## Known Limitations## Known Limitations
+
+
+
+- **No cloud:** Data stays on local network- **No cloud:** Data stays on local network
+
+- **No authentication:** Works on trusted networks only- **No authentication:** Works on trusted networks only
+
+- **Single user:** Not designed for concurrent users- **Single user:** Not designed for concurrent users
+
+- **No VPN/remote:** Requires direct LAN access- **No VPN/remote:** Requires direct LAN access
+
+- **Windows Firewall:** May block port 5000 (allow in firewall settings)- **Windows Firewall:** May block port 5000 (allow in firewall settings)
+
 > 3. Deploy the backend on a cloud server (AWS, Azure, Google Cloud)
-> 4. Configure firewall rules and security groups
+
+## Troubleshooting> 4. Configure firewall rules and security groups
+
 > 5. Implement proper authentication and authorization
-> 6. Test thoroughly in production-like environments
-> 7. Follow app store guidelines if publishing to Google Play or Apple App Store
->
-> **For Local/Development Use:**
+
+### Backend won't start> 6. Test thoroughly in production-like environments
+
+- Verify Python is installed: `python --version`> 7. Follow app store guidelines if publishing to Google Play or Apple App Store
+
+- Reinstall reportlab if issues: `pip install --upgrade reportlab==4.4.4`>
+
+- Check port 5000 is free: `netstat -ano | findstr :5000`> **For Local/Development Use:**
+
 > This guide focuses on local deployment for testing and development purposes, which is sufficient for:
-> - Academic projects and demonstrations
-> - Proof-of-concept implementations
-> - Local greenhouse monitoring within a single network
-> - Development and debugging
 
----
+### Frontend can't connect> - Academic projects and demonstrations
 
----
+- Verify backend is running and reachable on same network> - Proof-of-concept implementations
+
+- Check Windows Firewall allows port 5000> - Local greenhouse monitoring within a single network
+
+- Manually set backend IP in app Settings if auto-discovery fails> - Development and debugging
+
+
+
+### APEX data not loading---
+
+- Verify ORACLE_APEX_URL in `.env` is correct
+
+- Check internet connection (APEX must be reachable)---
+
+- Look for errors in Flask terminal output
 
 ## System Requirements
 
+## Next Steps
+
 ### Development Machine
-- **OS**: Windows 10/11, macOS 10.15+, or Linux (Ubuntu 20.04+)
+
+See `README.md` for architecture and features, `USER_MANUAL.md` for app walkthrough.- **OS**: Windows 10/11, macOS 10.15+, or Linux (Ubuntu 20.04+)
+
 - **RAM**: Minimum 8GB (16GB recommended)
 - **Storage**: 10GB free space
 - **Internet**: Stable connection for package downloads

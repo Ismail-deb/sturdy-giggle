@@ -1,109 +1,109 @@
-<div align="center">
+# EcoView - Smart Greenhouse Monitoring System
 
-# EcoView Greenhouse
+A full-stack Flutter + Python application for real-time greenhouse environmental monitoring with AI-powered recommendations.
 
-Smart, themeable, cross‑platform monitoring for greenhouse environments — real‑time data, AI insights, and safety alerts.
+**Status:** Local development & testing only (not deployed to app stores)
 
-</div>
+## Quick Start
 
----
+### Backend (Python Flask)
 
-## ⚠️ Important: Local Testing & Development Only
+1. Install dependencies:
+```powershell
+cd python_backend
+pip install flask flask-cors requests python-dotenv reportlab==4.4.4
+```
 
-> **This application was developed and tested in a local development environment only.**
->
-> **NOT deployed to:**
-> - ❌ Google Play Store
-> - ❌ Apple App Store
-> - ❌ Production cloud environments
->
-> **Testing scope:**
-> - ✅ Local network deployment (same WiFi)
-> - ✅ Direct APK installation on Android devices
-> - ✅ Development environment testing
-> - ✅ Local MQTT broker communication
->
-> This project is suitable for academic demonstrations, proof-of-concept implementations, and local greenhouse monitoring within a single network. For production deployment to app stores or cloud environments, additional configuration and testing would be required.
+2. Configure `.env`:
+```
+ORACLE_APEX_URL=https://oracleapex.com/ords/g3_data/iot/greenhouse/
+GEMINI_API_KEY=your_api_key_here  # Optional
+```
 
----
+3. Run:
+```powershell
+python app.py
+```
+Server runs on `http://localhost:5000` and broadcasts on your local network.
 
-## Overview
+### Frontend (Flutter)
 
-EcoView is a full‑stack application:
+1. Install Flutter & dependencies:
+```powershell
+cd flutter_frontend
+flutter pub get
+```
 
-- Flutter frontend (Windows/macOS/Linux/Web/Android/iOS) with a clean earthy theme and responsive dashboard
-- Python Flask backend that pulls live readings from Oracle APEX and exposes REST APIs
-- Optional Google Gemini integration for AI analysis and recommendations
-
-The system prioritizes real data: all sensor values come directly from APEX (no simulations), then thresholds are applied for statuses and alerts.
-
-## Key Features
-
-- Live dashboard: temperature, humidity, soil moisture, light, CO₂, air quality (MQ135), smoke (MQ2), CO (MQ7), flame
-- One‑tap deep dive: click a dashboard card for analysis and historical trends (AI insights available)
-- Sensors page: plain‑English explanations of each sensor, what it measures, and optimal ranges
-- Alerts: consolidated safety and environment alerts with severity levels
-- AI recommendations: Gemini‑backed guidance when enabled (fallback guidance built‑in)
-- Export: backend endpoint to generate a comprehensive PDF report
-- Auto‑discovery: frontend finds the backend on your LAN via UDP broadcast; or set IP in Settings
+2. Run:
+```powershell
+flutter run -d chrome      # Web (fastest to test)
+flutter run -d windows     # Windows desktop
+flutter run -d android     # Android (requires Android Studio)
+```
 
 ## Project Structure
 
 ```
-sturdy-giggle/
-├─ flutter_frontend/           # Flutter app (Material 3, earthy/dark themes)
-│  ├─ lib/
-│  │  ├─ main.dart             # Themes, app shell, navigation
-│  │  ├─ screens/
-│  │  │  ├─ dashboard_screen.dart        # Banner + responsive cards grid
-│  │  │  ├─ sensor_info_screen.dart      # What each sensor does + optimal ranges
-│  │  │  ├─ sensor_analysis_screen.dart  # Trends + AI insights (from dashboard)
-│  │  │  ├─ settings_screen.dart         # Server discovery + manual IP override
-│  │  ├─ services/
-│  │  │  ├─ api_service.dart   # REST client, server discovery & health checks
-│  │  │  └─ server_discovery.dart
-│  ├─ assets/                  # App icon and images
-│  └─ pubspec.yaml
-├─ python_backend/
-│  ├─ app.py                   # Flask app, APEX polling, routes, report export
-│  ├─ gemini_service.py        # AI analysis (optional, with fallback)
-│  ├─ requirements.txt
-│  └─ THRESHOLDS.md            # Documented sensor thresholds and notes
-└─ README.md                   # This file
+├─ flutter_frontend/        # Flutter UI (Material 3, responsive dashboard)
+├─ python_backend/          # Flask REST API + APEX polling
+├─ scripts/                 # Helper scripts
+└─ docs/                    # Documentation
 ```
 
-## Prerequisites
+## Key Features
 
-- Windows 10/11, macOS, or Linux
-- Python 3.10+ with pip
-- Flutter SDK (3.x) and Dart SDK; platform toolchains for your target (Windows/Chrome recommended to start)
+- **Live Dashboard:** Temperature, humidity, soil moisture, light, CO₂, air quality
+- **AI Insights:** Gemini-powered recommendations (with fallback)
+- **PDF Reports:** Generate comprehensive environmental reports
+- **Auto-Discovery:** Frontend finds backend automatically on local network
+- **Real-Time Alerts:** Safety and environment notifications
 
-> Note: Two legacy helper scripts (`install_app.ps1`, `Run_EcoView_App.bat`) reference old paths; follow the steps below instead.
+## Architecture
 
-## Backend (Flask) — Setup and Run
+- **Backend:** Flask pulls live data from Oracle APEX every 3 seconds
+- **Frontend:** Flutter app connects to backend via REST API
+- **AI:** Optional Google Gemini integration for smart recommendations
+- **Reports:** ReportLab generates PDFs with sensor data and AI analysis
 
-1) Create a virtual environment and install dependencies
+## API Endpoints
 
-```powershell
-cd python_backend
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+- `GET /api/health` — Status check
+- `GET /api/sensor-data` — Latest readings and status
+- `GET /api/ai-recommendations` — AI insights (Gemini + fallback)
+- `GET /api/alerts` — Safety and environment alerts
+- `GET /api/export-report` — Generate PDF report
 
-2) Configure environment variables (create a `.env` file next to `app.py`)
+## Troubleshooting
 
-```
-ORACLE_APEX_URL=https://oracleapex.com/ords/g3_data/iot/greenhouse/
-# Optional for AI (Gemini):
-GEMINI_API_KEY=your_api_key_here
-```
+**Backend won't start:**
+- Missing Python? Install [Python 3.10+](https://python.org)
+- Missing reportlab? We upgraded to v4.4.4 (newer version with pre-built wheels). Run: `pip install --upgrade reportlab==4.4.4`
 
-3) Run the server (binds to all interfaces so other devices can connect)
+**Frontend can't find backend:**
+- Verify backend is running: visit `http://localhost:5000/api/health`
+- Same WiFi network? Manual IP in app Settings
+- Windows Firewall? Allow port 5000
 
-```powershell
-python app.py
-```
+**AI recommendations not showing:**
+- Optional feature. Set `GEMINI_API_KEY` in `.env` and restart backend, or app uses fallback alerts
+
+## Known Limitations
+
+- Local network only (no cloud deployment)
+- Tested on Windows 11 with Python 3.14
+- Flutter tested on Windows desktop and Chrome web
+- Requires direct LAN access (no VPN/remote access yet)
+
+## Notes for Developers
+
+- Backend polls APEX every 3 seconds (persistent HTTP with connection pooling)
+- Frontend auto-discovers backend via UDP broadcast (cached in SharedPreferences)
+- AI fallback provides safety recommendations even without API key
+- PDF reports include 6 top AI recommendations + sensor data + alerts
+
+---
+
+**Documentation:** See `USER_MANUAL.md` for feature walkthrough, `DEPLOYMENT_GUIDE.md` for local network setup.
 
 What the backend does:
 

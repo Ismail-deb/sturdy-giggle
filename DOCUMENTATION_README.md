@@ -1,103 +1,48 @@
-# EcoView Documentation Suite
+# EcoView Documentation
 
-This directory contains comprehensive documentation for the EcoView Greenhouse Monitoring System.
+Quick guide to documentation files:
 
-## 📚 Documentation Files
+## For Setup & Development
+**`README.md`** - Start here
+- Quick start (backend + frontend)
+- Dependencies and versions
+- Key features overview
+- Troubleshooting common issues
 
-### 1. [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
-**For: Developers, System Administrators, Technical Staff**
+**`DEPLOYMENT_GUIDE.md`** - Installation details
+- Complete setup instructions for Windows/Mac/Linux
+- Backend Flask setup
+- Flutter app build and deploy
+- Network configuration
+- Known limitations and fixes
 
-Complete technical guide covering:
-- System architecture and requirements
-- Backend deployment (Python/Flask)
-- Frontend deployment (Flutter mobile app)
-- Hardware setup (ESP32/Arduino + sensors)
-- MQTT broker configuration
-- Database setup and optimization
-- Security best practices
-- Production deployment strategies
-- Monitoring and maintenance
-- Troubleshooting technical issues
-- Performance optimization
+## For Using the App
+**`USER_MANUAL.md`** - App walkthrough
+- Dashboard features
+- Reading sensor data
+- Alerts and recommendations
+- Exporting reports
+- Connecting to backend
+- Troubleshooting connection issues
 
-**Use this when:**
-- Setting up the system from scratch
-- Deploying to production servers
-- Configuring hardware sensors
-- Troubleshooting technical problems
-- Planning infrastructure
-- Implementing security measures
+## Quick Ref
 
----
+| I want to... | See... |
+|---|---|
+| Run the app locally | README.md |
+| Install/configure backend | DEPLOYMENT_GUIDE.md |
+| Build Flutter app | DEPLOYMENT_GUIDE.md |
+| Use the app | USER_MANUAL.md |
+| Fix connection problems | USER_MANUAL.md > Troubleshooting |
+| Fix backend issues | DEPLOYMENT_GUIDE.md > Troubleshooting |
 
-### 2. [USER_MANUAL.md](./USER_MANUAL.md)
-**For: End Users, Greenhouse Operators, Plant Growers**
+## File Sizes
+- README.md: ~120 lines (quick start)
+- DEPLOYMENT_GUIDE.md: ~160 lines (setup)
+- USER_MANUAL.md: ~130 lines (usage)
+- DOCUMENTATION_README.md: this file
 
-Complete user guide covering:
-- Getting started with the mobile app
-- Understanding the dashboard
-- Reading sensor data and charts
-- Using AI recommendations
-- Managing notifications and alerts
-- Generating PDF reports
-- Best practices for greenhouse monitoring
-- Daily/weekly/monthly routines
-- Seasonal adjustments
-- Troubleshooting common user issues
-- FAQs and quick tips
-
-**Use this when:**
-- Learning to use the app
-- Understanding sensor readings
-- Interpreting alerts and recommendations
-- Generating reports
-- Optimizing greenhouse conditions
-- Training new staff
-
----
-
-## 📖 Quick Reference
-
-### For Developers
-
-| Task | See Section |
-|------|-------------|
-| First-time setup | DEPLOYMENT_GUIDE > Pre-Deployment Checklist |
-| Install Python backend | DEPLOYMENT_GUIDE > Backend Deployment |
-| Build Flutter APK | DEPLOYMENT_GUIDE > Frontend Deployment |
-| Connect sensors | DEPLOYMENT_GUIDE > Hardware Setup |
-| Configure MQTT | DEPLOYMENT_GUIDE > Configuration |
-| Deploy to production | DEPLOYMENT_GUIDE > Step 8: Production Deployment |
-| Setup SSL/HTTPS | DEPLOYMENT_GUIDE > Step 9: Setup Reverse Proxy |
-| Troubleshoot technical issues | DEPLOYMENT_GUIDE > Troubleshooting |
-
-### For End Users
-
-| Task | See Section |
-|------|-------------|
-| Install mobile app | USER_MANUAL > Getting Started |
-| Understand dashboard | USER_MANUAL > Dashboard Overview |
-| View sensor history | USER_MANUAL > Monitoring Sensors |
-| Get AI advice | USER_MANUAL > AI Recommendations |
-| Generate reports | USER_MANUAL > Reports & Export |
-| Setup notifications | USER_MANUAL > Notifications & Alerts |
-| Daily monitoring | USER_MANUAL > Best Practices |
-| Fix app problems | USER_MANUAL > Troubleshooting |
-
----
-
-## 🎯 Documentation Goals
-
-Both documents are designed to be:
-- **Comprehensive**: Cover all aspects of the system
-- **Detailed**: Step-by-step instructions with examples
-- **Practical**: Real-world scenarios and solutions
-- **Visual**: Diagrams, tables, and ASCII art where helpful
-- **Searchable**: Well-organized with table of contents
-- **Up-to-date**: Version tracked and regularly updated
-
----
-
+All documentation reflects the actual setup process and known workarounds (e.g., reportlab 4.4.4 for Python 3.14).
 ## 📊 Document Statistics
 
 ### DEPLOYMENT_GUIDE.md

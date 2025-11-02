@@ -1,103 +1,204 @@
-# EcoView Greenhouse Monitoring System - User Manual
+# EcoView - User Manual# EcoView Greenhouse Monitoring System - User Manual
 
-## Table of Contents
+
+
+## Dashboard## Table of Contents
+
 1. [Introduction](#introduction)
-2. [Getting Started](#getting-started)
+
+The main screen shows real-time greenhouse conditions:2. [Getting Started](#getting-started)
+
 3. [Dashboard Overview](#dashboard-overview)
-4. [Monitoring Sensors](#monitoring-sensors)
-5. [AI Recommendations](#ai-recommendations)
-6. [Sensor Analysis](#sensor-analysis)
-7. [Notifications & Alerts](#notifications--alerts)
-8. [Reports & Export](#reports--export)
-9. [Settings & Configuration](#settings--configuration)
+
+- **Temperature** (°C) - Current air temperature4. [Monitoring Sensors](#monitoring-sensors)
+
+- **Humidity** (%) - Current air humidity5. [AI Recommendations](#ai-recommendations)
+
+- **Soil Moisture** (%) - Soil water content6. [Sensor Analysis](#sensor-analysis)
+
+- **Light** (%) - Brightness level7. [Notifications & Alerts](#notifications--alerts)
+
+- **CO₂** (ppm) - Carbon dioxide level8. [Reports & Export](#reports--export)
+
+- **Air Quality** - MQ135 air quality sensor9. [Settings & Configuration](#settings--configuration)
+
 10. [Troubleshooting](#troubleshooting)
-11. [Best Practices](#best-practices)
-12. [FAQ](#faq)
 
----
+Status indicators:11. [Best Practices](#best-practices)
 
-## Introduction
+- 🟢 Green = Optimal range12. [FAQ](#faq)
 
-### What is EcoView?
+- 🟡 Yellow = Acceptable range
 
-EcoView is an intelligent greenhouse monitoring system that helps you maintain optimal growing conditions for your plants. The system continuously monitors:
+- 🔴 Red = Critical/alert range---
 
-- 🌡️ **Temperature** - Air temperature in your greenhouse
-- 💧 **Humidity** - Moisture level in the air
+
+
+## Features## Introduction
+
+
+
+### Sensor Details### What is EcoView?
+
+Tap any card to see:
+
+- Detailed current readingsEcoView is an intelligent greenhouse monitoring system that helps you maintain optimal growing conditions for your plants. The system continuously monitors:
+
+- Historical graph (24 hours)
+
+- AI recommendations for that sensor- 🌡️ **Temperature** - Air temperature in your greenhouse
+
+- Status interpretation- 💧 **Humidity** - Moisture level in the air
+
 - 🌱 **CO2 Levels** - Carbon dioxide concentration
-- 🌾 **Soil Moisture** - Water content in soil
-- ☀️ **Light Intensity** - Amount of light available to plants
+
+### Sensor Info- 🌾 **Soil Moisture** - Water content in soil
+
+Learn what each sensor measures and optimal ranges for greenhouse growing.- ☀️ **Light Intensity** - Amount of light available to plants
+
 - 🔥 **Flame Detection** - Fire safety monitoring
 
-### Key Features
+### Alerts
 
-- **Real-time Monitoring**: View current conditions at a glance
-- **Historical Data**: Track trends over time with interactive charts
-- **AI Recommendations**: Get smart advice powered by Google Gemini AI
+View active alerts and safety warnings. Critical alerts (red) require immediate attention:### Key Features
+
+- Flame detected
+
+- Temperature too high/low- **Real-time Monitoring**: View current conditions at a glance
+
+- Humidity out of range- **Historical Data**: Track trends over time with interactive charts
+
+- CO₂ levels abnormal- **AI Recommendations**: Get smart advice powered by Google Gemini AI
+
 - **Instant Alerts**: Receive notifications when conditions are outside optimal ranges
-- **Detailed Reports**: Generate PDF reports for record-keeping
-- **Multi-sensor Support**: Monitor all critical parameters in one place
 
-### System Requirements
+### Settings- **Detailed Reports**: Generate PDF reports for record-keeping
 
-**For Mobile App:**
-- Android 7.0 or higher
-- 100MB free storage
-- Internet connection (WiFi or mobile data)
+- **Backend IP:** Manually set the server address (if auto-discovery fails)- **Multi-sensor Support**: Monitor all critical parameters in one place
 
-**For Greenhouse:**
+- **Backend Port:** Default 5000
+
+- **Test Connection:** Verify backend is reachable### System Requirements
+
+
+
+### Export Report**For Mobile App:**
+
+Generate a PDF with:- Android 7.0 or higher
+
+- Current sensor readings- 100MB free storage
+
+- Status summary- Internet connection (WiFi or mobile data)
+
+- AI recommendations
+
+- Timestamp**For Greenhouse:**
+
 - WiFi connection (2.4GHz)
-- Sensors properly installed and connected
+
+## Connecting to Backend- Sensors properly installed and connected
+
 - Backend server running
 
----
+### Auto-Discovery
 
-## Getting Started
+The app automatically finds the backend server if:---
+
+1. Backend is running on local network
+
+2. Same WiFi network as your device## Getting Started
+
+3. Both devices on 2.4GHz band (not 5GHz)
 
 ### 1. Installation
 
-#### Android Installation
+### Manual Connection
 
-1. **Download the APK**
-   - Obtain the `app-release.apk` file from your administrator
-   - Transfer it to your Android device
+If auto-discovery fails:#### Android Installation
 
-2. **Enable Unknown Sources**
+1. Go to Settings
+
+2. Enter backend IP address (e.g., `192.168.1.100`)1. **Download the APK**
+
+3. Tap "Test Connection"   - Obtain the `app-release.apk` file from your administrator
+
+4. If successful, dashboard will update   - Transfer it to your Android device
+
+
+
+## Troubleshooting2. **Enable Unknown Sources**
+
    - Go to Settings > Security
-   - Enable "Install from Unknown Sources" or "Allow from this source"
 
-3. **Install the App**
-   - Locate the APK file using a file manager
-   - Tap to install
+### App shows "Connection Failed"   - Enable "Install from Unknown Sources" or "Allow from this source"
+
+- Is backend running? Check terminal where `python app.py` started
+
+- Same WiFi? Both devices must be on same network3. **Install the App**
+
+- Firewall? Windows Firewall may block port 5000   - Locate the APK file using a file manager
+
+- Manual IP: Try setting backend IP in Settings   - Tap to install
+
    - Follow on-screen prompts
-   - Tap "Open" when installation completes
 
-#### iOS Installation (If Available)
+### Readings not updating   - Tap "Open" when installation completes
+
+- Tap refresh icon on dashboard
+
+- Check backend is still running#### iOS Installation (If Available)
+
+- Check internet connection to APEX
 
 1. Download from TestFlight or App Store
-2. Follow standard iOS installation process
 
-### 2. First Launch
+### PDF export fails2. Follow standard iOS installation process
+
+- Ensure backend is running
+
+- Check internet connection### 2. First Launch
+
+- Verify APEX data is being fetched
 
 When you first open EcoView:
 
-1. **Grant Permissions**
-   - **Internet**: Required to fetch sensor data
-   - **Notifications**: Optional, for alerts
+### App crashes on startup
+
+- Clear app cache: Settings > Apps > EcoView > Storage > Clear Cache1. **Grant Permissions**
+
+- Reinstall app if cache clear doesn't work   - **Internet**: Required to fetch sensor data
+
+- Check you have permission to install apps   - **Notifications**: Optional, for alerts
+
    - Tap "Allow" for each permission
 
+## Tips
+
 2. **Check Connection**
-   - The app will attempt to connect to the backend server
-   - If successful, you'll see the Dashboard
-   - If connection fails, see [Troubleshooting](#troubleshooting)
 
-3. **Explore the Interface**
+- Optimal greenhouse temperature: 20-25°C   - The app will attempt to connect to the backend server
+
+- Optimal humidity: 50-70%   - If successful, you'll see the Dashboard
+
+- Optimal light: 2000-5000 lux   - If connection fails, see [Troubleshooting](#troubleshooting)
+
+- Soil moisture: 40-60%
+
+- Check settings if backend IP changes3. **Explore the Interface**
+
    - Take a moment to familiarize yourself with the navigation
-   - The Dashboard is your home screen
 
-### 3. Navigation Basics
+## Support   - The Dashboard is your home screen
 
-The app has a clean, intuitive interface:
+
+
+For issues, check:### 3. Navigation Basics
+
+1. `README.md` - Setup instructions
+
+2. `DEPLOYMENT_GUIDE.md` - Backend troubleshootingThe app has a clean, intuitive interface:
+
+3. Backend terminal output for errors
 
 ```
 ┌─────────────────────────┐
