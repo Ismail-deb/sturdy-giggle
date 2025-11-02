@@ -1,216 +1,429 @@
-# EcoView - User Manual# EcoView Greenhouse Monitoring System - User Manual
+# 📖 EcoView - User Manual# EcoView - User Manual# EcoView Greenhouse Monitoring System - User Manual
 
 
 
-## Dashboard## Table of Contents
-
-1. [Introduction](#introduction)
-
-The main screen shows real-time greenhouse conditions:2. [Getting Started](#getting-started)
-
-3. [Dashboard Overview](#dashboard-overview)
-
-- **Temperature** (°C) - Current air temperature4. [Monitoring Sensors](#monitoring-sensors)
-
-- **Humidity** (%) - Current air humidity5. [AI Recommendations](#ai-recommendations)
-
-- **Soil Moisture** (%) - Soil water content6. [Sensor Analysis](#sensor-analysis)
-
-- **Light** (%) - Brightness level7. [Notifications & Alerts](#notifications--alerts)
-
-- **CO₂** (ppm) - Carbon dioxide level8. [Reports & Export](#reports--export)
-
-- **Air Quality** - MQ135 air quality sensor9. [Settings & Configuration](#settings--configuration)
-
-10. [Troubleshooting](#troubleshooting)
-
-Status indicators:11. [Best Practices](#best-practices)
-
-- 🟢 Green = Optimal range12. [FAQ](#faq)
-
-- 🟡 Yellow = Acceptable range
-
-- 🔴 Red = Critical/alert range---
+## 📊 Dashboard
 
 
 
-## Features## Introduction
+The main screen displays live greenhouse conditions in real-time:## Dashboard## Table of Contents
 
 
 
-### Sensor Details### What is EcoView?
+```1. [Introduction](#introduction)
+
+┌──────────────────────────────────────────┐
+
+│ 🌡️ TEMPERATURE      💧 HUMIDITY          │The main screen shows real-time greenhouse conditions:2. [Getting Started](#getting-started)
+
+│ 22.5°C              68%                  │
+
+│ ✅ Optimal          ✅ Optimal           │3. [Dashboard Overview](#dashboard-overview)
+
+│                                          │
+
+│ 🌱 SOIL MOISTURE    ☀️  LIGHT            │- **Temperature** (°C) - Current air temperature4. [Monitoring Sensors](#monitoring-sensors)
+
+│ 52%                 4200 lux             │
+
+│ ✅ Optimal          ✅ Optimal           │- **Humidity** (%) - Current air humidity5. [AI Recommendations](#ai-recommendations)
+
+│                                          │
+
+│ 🌫️  CO₂              🔥 AIR QUALITY      │- **Soil Moisture** (%) - Soil water content6. [Sensor Analysis](#sensor-analysis)
+
+│ 820 ppm             185 ppm              │
+
+│ ✅ Optimal          ✅ Good              │- **Light** (%) - Brightness level7. [Notifications & Alerts](#notifications--alerts)
+
+│                                          │
+
+│ ⚠️  No Active Alerts                    │- **CO₂** (ppm) - Carbon dioxide level8. [Reports & Export](#reports--export)
+
+└──────────────────────────────────────────┘
+
+```- **Air Quality** - MQ135 air quality sensor9. [Settings & Configuration](#settings--configuration)
+
+
+
+### Status Colors10. [Troubleshooting](#troubleshooting)
+
+
+
+| Color | Meaning | Action |Status indicators:11. [Best Practices](#best-practices)
+
+|-------|---------|--------|
+
+| 🟢 Green | Optimal | ✅ No action needed |- 🟢 Green = Optimal range12. [FAQ](#faq)
+
+| 🟡 Yellow | Acceptable | ⚠️ Monitor closely |
+
+| 🔴 Red | Critical | 🚨 Immediate attention |- 🟡 Yellow = Acceptable range
+
+
+
+---- 🔴 Red = Critical/alert range---
+
+
+
+## ⚙️ Main Features
+
+
+
+### 📈 View Sensor Details## Features## Introduction
+
+Tap any sensor card to:
+
+- See detailed current readings
+
+- View 24-hour historical graph
+
+- Get AI recommendations### Sensor Details### What is EcoView?
+
+- Understand status meaning
 
 Tap any card to see:
 
-- Detailed current readingsEcoView is an intelligent greenhouse monitoring system that helps you maintain optimal growing conditions for your plants. The system continuously monitors:
+### 📚 Learn About Sensors
 
-- Historical graph (24 hours)
+Access **Sensor Info** screen to learn:- Detailed current readingsEcoView is an intelligent greenhouse monitoring system that helps you maintain optimal growing conditions for your plants. The system continuously monitors:
 
-- AI recommendations for that sensor- 🌡️ **Temperature** - Air temperature in your greenhouse
+- What each sensor measures
 
-- Status interpretation- 💧 **Humidity** - Moisture level in the air
+- How to interpret readings- Historical graph (24 hours)
 
-- 🌱 **CO2 Levels** - Carbon dioxide concentration
+- Optimal ranges for plants
 
-### Sensor Info- 🌾 **Soil Moisture** - Water content in soil
+- When to be concerned- AI recommendations for that sensor- 🌡️ **Temperature** - Air temperature in your greenhouse
+
+
+
+### ⚠️ Manage Alerts- Status interpretation- 💧 **Humidity** - Moisture level in the air
+
+**Alerts** section shows:
+
+- Safety warnings (flame, gas)- 🌱 **CO2 Levels** - Carbon dioxide concentration
+
+- Environmental alerts (temperature, humidity)
+
+- Priority level (critical = red)### Sensor Info- 🌾 **Soil Moisture** - Water content in soil
+
+- Recommended actions
 
 Learn what each sensor measures and optimal ranges for greenhouse growing.- ☀️ **Light Intensity** - Amount of light available to plants
 
+### 🔧 Configure Settings
+
 - 🔥 **Flame Detection** - Fire safety monitoring
 
-### Alerts
+| Setting | Purpose |
 
-View active alerts and safety warnings. Critical alerts (red) require immediate attention:### Key Features
+|---------|---------|### Alerts
+
+| **Backend IP** | Manual server address if auto-discovery fails |
+
+| **Backend Port** | Server port (default: 5000) |View active alerts and safety warnings. Critical alerts (red) require immediate attention:### Key Features
+
+| **Test Connection** | Verify backend is reachable |
 
 - Flame detected
 
-- Temperature too high/low- **Real-time Monitoring**: View current conditions at a glance
+### 📄 Generate Reports
 
-- Humidity out of range- **Historical Data**: Track trends over time with interactive charts
+Export PDF with:- Temperature too high/low- **Real-time Monitoring**: View current conditions at a glance
 
-- CO₂ levels abnormal- **AI Recommendations**: Get smart advice powered by Google Gemini AI
+- ✅ Current sensor readings
 
-- **Instant Alerts**: Receive notifications when conditions are outside optimal ranges
+- ✅ Status summary- Humidity out of range- **Historical Data**: Track trends over time with interactive charts
 
-### Settings- **Detailed Reports**: Generate PDF reports for record-keeping
+- ✅ 6 AI recommendations
 
-- **Backend IP:** Manually set the server address (if auto-discovery fails)- **Multi-sensor Support**: Monitor all critical parameters in one place
-
-- **Backend Port:** Default 5000
-
-- **Test Connection:** Verify backend is reachable### System Requirements
+- ✅ Timestamp & date- CO₂ levels abnormal- **AI Recommendations**: Get smart advice powered by Google Gemini AI
 
 
 
-### Export Report**For Mobile App:**
+---- **Instant Alerts**: Receive notifications when conditions are outside optimal ranges
 
-Generate a PDF with:- Android 7.0 or higher
 
-- Current sensor readings- 100MB free storage
 
-- Status summary- Internet connection (WiFi or mobile data)
+## 🔌 Connecting to Backend### Settings- **Detailed Reports**: Generate PDF reports for record-keeping
 
-- AI recommendations
+
+
+### ✅ Automatic Discovery (Recommended)- **Backend IP:** Manually set the server address (if auto-discovery fails)- **Multi-sensor Support**: Monitor all critical parameters in one place
+
+
+
+Works automatically if:- **Backend Port:** Default 5000
+
+1. ✅ Backend is running (`python app.py`)
+
+2. ✅ Same WiFi network- **Test Connection:** Verify backend is reachable### System Requirements
+
+3. ✅ Both on 2.4GHz (not 5GHz)
+
+4. ✅ Port 5000 is open
+
+
+
+### 🔧 Manual Connection### Export Report**For Mobile App:**
+
+
+
+If auto-discovery fails:Generate a PDF with:- Android 7.0 or higher
+
+
+
+1. Go to **Settings**- Current sensor readings- 100MB free storage
+
+2. Enter **Backend IP** (e.g., `192.168.1.100`)
+
+3. Keep **Port** as `5000`- Status summary- Internet connection (WiFi or mobile data)
+
+4. Tap **Test Connection**
+
+5. Look for ✅ success message- AI recommendations
+
+6. Dashboard should update with live data
 
 - Timestamp**For Greenhouse:**
 
+### 🧪 Test Your Connection
+
 - WiFi connection (2.4GHz)
 
-## Connecting to Backend- Sensors properly installed and connected
+```
 
-- Backend server running
+Expected Response:## Connecting to Backend- Sensors properly installed and connected
 
-### Auto-Discovery
+✅ Connected successfully
 
-The app automatically finds the backend server if:---
+Backend Version: 1.0.0- Backend server running
 
-1. Backend is running on local network
+Last Poll: 2 seconds ago
 
-2. Same WiFi network as your device## Getting Started
+```### Auto-Discovery
 
-3. Both devices on 2.4GHz band (not 5GHz)
 
-### 1. Installation
+
+---The app automatically finds the backend server if:---
+
+
+
+## 🐛 Troubleshooting1. Backend is running on local network
+
+
+
+### ❌ "Connection Failed"2. Same WiFi network as your device## Getting Started
+
+
+
+**Solution Checklist:**3. Both devices on 2.4GHz band (not 5GHz)
+
+
+
+- [ ] Is backend running?  ### 1. Installation
+
+  → Terminal should show: `✅ APEX poll successful!`
 
 ### Manual Connection
 
-If auto-discovery fails:#### Android Installation
+- [ ] Same WiFi network?  
 
-1. Go to Settings
+  → Both phone/computer on same 2.4GHz WiFiIf auto-discovery fails:#### Android Installation
+
+
+
+- [ ] Firewall allowing port 5000?  1. Go to Settings
+
+  → Windows: Settings → Firewall → Allow app through
 
 2. Enter backend IP address (e.g., `192.168.1.100`)1. **Download the APK**
 
-3. Tap "Test Connection"   - Obtain the `app-release.apk` file from your administrator
+- [ ] Try manual IP in Settings  
 
-4. If successful, dashboard will update   - Transfer it to your Android device
+  → Enter backend IP like `192.168.1.100`3. Tap "Test Connection"   - Obtain the `app-release.apk` file from your administrator
 
 
 
-## Troubleshooting2. **Enable Unknown Sources**
+### ❌ "Readings not updating"4. If successful, dashboard will update   - Transfer it to your Android device
+
+
+
+- Tap refresh icon (↻) on dashboard
+
+- Check backend terminal for errors
+
+- Verify internet connection (APEX must be reachable)## Troubleshooting2. **Enable Unknown Sources**
+
+- Restart backend: Stop Python and run `python app.py` again
 
    - Go to Settings > Security
 
+### ❌ "PDF export fails"
+
 ### App shows "Connection Failed"   - Enable "Install from Unknown Sources" or "Allow from this source"
-
-- Is backend running? Check terminal where `python app.py` started
-
-- Same WiFi? Both devices must be on same network3. **Install the App**
-
-- Firewall? Windows Firewall may block port 5000   - Locate the APK file using a file manager
-
-- Manual IP: Try setting backend IP in Settings   - Tap to install
-
-   - Follow on-screen prompts
-
-### Readings not updating   - Tap "Open" when installation completes
-
-- Tap refresh icon on dashboard
-
-- Check backend is still running#### iOS Installation (If Available)
-
-- Check internet connection to APEX
-
-1. Download from TestFlight or App Store
-
-### PDF export fails2. Follow standard iOS installation process
 
 - Ensure backend is running
 
-- Check internet connection### 2. First Launch
+- Check internet connection- Is backend running? Check terminal where `python app.py` started
 
-- Verify APEX data is being fetched
+- Verify APEX is reachable
 
-When you first open EcoView:
+- Check backend terminal for error messages- Same WiFi? Both devices must be on same network3. **Install the App**
 
-### App crashes on startup
 
-- Clear app cache: Settings > Apps > EcoView > Storage > Clear Cache1. **Grant Permissions**
 
-- Reinstall app if cache clear doesn't work   - **Internet**: Required to fetch sensor data
+### ❌ "App crashes on startup"- Firewall? Windows Firewall may block port 5000   - Locate the APK file using a file manager
 
-- Check you have permission to install apps   - **Notifications**: Optional, for alerts
 
-   - Tap "Allow" for each permission
 
-## Tips
+```- Manual IP: Try setting backend IP in Settings   - Tap to install
 
-2. **Check Connection**
+Solutions in order:
 
-- Optimal greenhouse temperature: 20-25°C   - The app will attempt to connect to the backend server
+1. Force close app and reopen   - Follow on-screen prompts
 
-- Optimal humidity: 50-70%   - If successful, you'll see the Dashboard
+2. Clear cache: Settings > Apps > EcoView > Storage > Clear Cache
+
+3. Reinstall app### Readings not updating   - Tap "Open" when installation completes
+
+4. Verify app has internet permission
+
+```- Tap refresh icon on dashboard
+
+
+
+---- Check backend is still running#### iOS Installation (If Available)
+
+
+
+## 💡 Tips & Best Practices- Check internet connection to APEX
+
+
+
+### 🌡️ Optimal Ranges1. Download from TestFlight or App Store
+
+
+
+| Sensor | Optimal | Alert | Critical |### PDF export fails2. Follow standard iOS installation process
+
+|--------|---------|-------|----------|
+
+| Temperature | 20-25°C | 18-28°C | <18 or >28°C |- Ensure backend is running
+
+| Humidity | 50-70% | 45-75% | <45 or >80% |
+
+| Soil Moisture | 40-60% | 30-70% | <30 or >70% |- Check internet connection### 2. First Launch
+
+| Light | 2000-5000 lux | 1000-8000 lux | <500 lux |
+
+| CO₂ | 800-1200 ppm | 400-1500 ppm | >2000 ppm |- Verify APEX data is being fetched
+
+
+
+### 📋 Daily ChecklistWhen you first open EcoView:
+
+
+
+- [ ] Check dashboard status (should be all green)### App crashes on startup
+
+- [ ] Note any yellow/red alerts
+
+- [ ] Review 24-hour graphs- Clear app cache: Settings > Apps > EcoView > Storage > Clear Cache1. **Grant Permissions**
+
+- [ ] Check if AI recommendations changed
+
+- [ ] Export PDF report if needed- Reinstall app if cache clear doesn't work   - **Internet**: Required to fetch sensor data
+
+
+
+### 🔄 When Backend IP Changes- Check you have permission to install apps   - **Notifications**: Optional, for alerts
+
+
+
+- Update in Settings if network changes   - Tap "Allow" for each permission
+
+- Always tap "Test Connection" to verify
+
+- If auto-discovery worked before, try forgetting manual IP## Tips
+
+
+
+---2. **Check Connection**
+
+
+
+## ❓ FAQ- Optimal greenhouse temperature: 20-25°C   - The app will attempt to connect to the backend server
+
+
+
+**Q: Can I use the app without AI recommendations?**  - Optimal humidity: 50-70%   - If successful, you'll see the Dashboard
+
+A: Yes! App works perfectly without Gemini API key. Uses fallback safety alerts.
 
 - Optimal light: 2000-5000 lux   - If connection fails, see [Troubleshooting](#troubleshooting)
 
-- Soil moisture: 40-60%
+**Q: Why does data take 3 seconds to update?**  
 
-- Check settings if backend IP changes3. **Explore the Interface**
+A: Backend polls APEX every 3 seconds. This is normal.- Soil moisture: 40-60%
+
+
+
+**Q: Can I view data on multiple devices?**  - Check settings if backend IP changes3. **Explore the Interface**
+
+A: Yes! All devices can connect if they're on same network.
 
    - Take a moment to familiarize yourself with the navigation
 
-## Support   - The Dashboard is your home screen
+**Q: What if I close the app?**  
+
+A: Backend keeps running. Data is saved. Reopen app to see latest readings.## Support   - The Dashboard is your home screen
 
 
+
+**Q: How long are readings kept?**  
+
+A: 24-hour graphs shown. Older data available in PDF exports.
 
 For issues, check:### 3. Navigation Basics
 
+---
+
 1. `README.md` - Setup instructions
+
+## 📞 Support
 
 2. `DEPLOYMENT_GUIDE.md` - Backend troubleshootingThe app has a clean, intuitive interface:
 
+**Having issues?** Check in this order:
+
 3. Backend terminal output for errors
 
-```
-┌─────────────────────────┐
-│   📊 Dashboard          │  ← Main screen
+1. 📖 [README.md](README.md) - Feature overview
+
+2. 🛠️ [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Setup & backend issues```
+
+3. 🖥️ Backend terminal - Check for error messages┌─────────────────────────┐
+
+4. 🌐 Test connection manually in Settings│   📊 Dashboard          │  ← Main screen
+
 ├─────────────────────────┤
-│   📈 Sensor Details     │  ← Tap any sensor card
+
+---│   📈 Sensor Details     │  ← Tap any sensor card
+
 ├─────────────────────────┤
-│   🤖 AI Recommendations │  ← Smart advice
+
+<div align="center">│   🤖 AI Recommendations │  ← Smart advice
+
 ├─────────────────────────┤
-│   ℹ️ Learn About Sensors│  ← Educational info
+
+**Need more help?** Check backend terminal for detailed error messages│   ℹ️ Learn About Sensors│  ← Educational info
+
 ├─────────────────────────┤
-│   📄 Generate Report    │  ← Export PDF
+
+</div>│   📄 Generate Report    │  ← Export PDF
+
 └─────────────────────────┘
 ```
 

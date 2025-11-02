@@ -1,218 +1,433 @@
-# EcoView - Local Deployment Guide# EcoView - Local Deployment Guide
+# 🛠️ EcoView - Deployment Guide# EcoView - Local Deployment Guide# EcoView - Local Deployment Guide
 
 
 
-**Scope:** Single-network deployment for development, testing, and local monitoring only.**Scope:** Single-network deployment for development, testing, and local monitoring only.
+**Scope:** Local network deployment for development & testing  
+
+**Target:** Windows 10/11, macOS, Linux  
+
+**Status:** Not for production or app stores**Scope:** Single-network deployment for development, testing, and local monitoring only.**Scope:** Single-network deployment for development, testing, and local monitoring only.
 
 
 
-## System Requirements## System Requirements
+---
 
 
 
-- **Backend:** Windows 10/11, macOS, or Linux; Python 3.10+; 100MB free space- **Backend:** Windows 10/11, macOS, or Linux; Python 3.10+; 100MB free space
+## 📋 Requirements## System Requirements## System Requirements
 
-- **Frontend:** Windows desktop, macOS, Linux, or Chrome web- **Frontend:** Windows desktop, macOS, Linux, or Chrome web
+
+
+| Component | Requirement |
+
+|-----------|-------------|
+
+| **Backend** | Python 3.10+, 100MB space |- **Backend:** Windows 10/11, macOS, or Linux; Python 3.10+; 100MB free space- **Backend:** Windows 10/11, macOS, or Linux; Python 3.10+; 100MB free space
+
+| **Frontend** | Flutter 3.30+, 500MB space |
+
+| **Network** | Same WiFi (2.4GHz), 5000 port open |- **Frontend:** Windows desktop, macOS, Linux, or Chrome web- **Frontend:** Windows desktop, macOS, Linux, or Chrome web
+
+| **APEX** | Reachable internet API |
 
 - **Network:** Devices on same WiFi network- **Network:** Devices on same WiFi network
 
+---
+
 - **APEX:** Access to Oracle APEX greenhouse data API- **APEX:** Access to Oracle APEX greenhouse data API
 
+## 🚀 Backend Setup (Python Flask)
 
+
+
+### Step 1: Install Dependencies
 
 ## Setup: Backend (Windows Example)## Setup: Backend (Windows Example)
 
+```powershell
+
+cd python_backend
 
 
-1. **Install Python dependencies:**1. **Install Python dependencies:**
+
+# Install all required packages1. **Install Python dependencies:**1. **Install Python dependencies:**
+
+pip install flask flask-cors requests python-dotenv reportlab==4.4.4
 
 ```powershell```powershell
 
-cd python_backendcd python_backend
+# Verify installation
+
+pip list | findstr flaskcd python_backendcd python_backend
+
+```
 
 pip install flask flask-cors requests python-dotenv reportlab==4.4.4pip install flask flask-cors requests python-dotenv reportlab==4.4.4
 
-``````
-
-
-
-2. **Create `.env`:**2. **Create `.env`:**
+### Step 2: Configure Environment
 
 ``````
 
-ORACLE_APEX_URL=https://oracleapex.com/ords/g3_data/iot/greenhouse/ORACLE_APEX_URL=https://oracleapex.com/ords/g3_data/iot/greenhouse/
-
-GEMINI_API_KEY=sk-... # OptionalGEMINI_API_KEY=sk-... # Optional
-
-``````
+Create `.env` file in `python_backend/`:
 
 
 
-3. **Run:**3. **Run:**
+```env
 
-```powershell```powershell
+ORACLE_APEX_URL=https://oracleapex.com/ords/g3_data/iot/greenhouse/2. **Create `.env`:**2. **Create `.env`:**
 
-python app.pypython app.py
+GEMINI_API_KEY=sk-your-key-here
 
-``````
+`````````
 
-- Backend listens on `0.0.0.0:5000` (all network interfaces)- Backend listens on `0.0.0.0:5000` (all network interfaces)
 
-- Broadcasts to local network every 5 seconds: `GREENHOUSE_SERVER:<ip>:5000`- Broadcasts to local network every 5 seconds: `GREENHOUSE_SERVER:<ip>:5000`
+
+### Step 3: Start ServerORACLE_APEX_URL=https://oracleapex.com/ords/g3_data/iot/greenhouse/ORACLE_APEX_URL=https://oracleapex.com/ords/g3_data/iot/greenhouse/
+
+
+
+```powershellGEMINI_API_KEY=sk-... # OptionalGEMINI_API_KEY=sk-... # Optional
+
+python app.py
+
+`````````
+
+
+
+✅ Look for console output:
+
+```
+
+✅ APEX poll successful! Got 20 readings3. **Run:**3. **Run:**
+
+📤 Broadcasting to local network...
+
+``````powershell```powershell
+
+
+
+---python app.pypython app.py
+
+
+
+## 📱 Frontend Setup (Flutter)``````
+
+
+
+### Step 1: Install Dependencies- Backend listens on `0.0.0.0:5000` (all network interfaces)- Backend listens on `0.0.0.0:5000` (all network interfaces)
+
+
+
+```powershell- Broadcasts to local network every 5 seconds: `GREENHOUSE_SERVER:<ip>:5000`- Broadcasts to local network every 5 seconds: `GREENHOUSE_SERVER:<ip>:5000`
+
+cd flutter_frontend
 
 - Polls APEX every 3 seconds- Polls APEX every 3 seconds
 
+# Get all packages
+
+flutter pub get
 
 
-## Setup: Frontend## Setup: Frontend
+
+# Verify no issues## Setup: Frontend## Setup: Frontend
+
+flutter doctor -v
+
+```
 
 
 
-**Option A: Chrome (Fastest for testing)****Option A: Chrome (Fastest for testing)**
+### Step 2: Run the App**Option A: Chrome (Fastest for testing)****Option A: Chrome (Fastest for testing)**
 
-```powershell```powershell
 
-cd flutter_frontendcd flutter_frontend
+
+**Option A: Web (Chrome) - Fastest**```powershell```powershell
+
+```powershell
+
+flutter run -d chromecd flutter_frontendcd flutter_frontend
+
+```
 
 flutter pub getflutter pub get
 
-flutter run -d chromeflutter run -d chrome
+**Option B: Windows Desktop**
 
-``````
+```powershellflutter run -d chromeflutter run -d chrome
 
+flutter run -d windows
 
-
-**Option B: Windows Desktop****Option B: Windows Desktop**
-
-```powershell```powershell
-
-flutter run -d windowsflutter run -d windows
-
-``````
+`````````
 
 
 
-**Option C: Android APK****Option C: Android APK**
+**Option C: Android APK**
 
-```powershell```powershell
+```powershell
 
-flutter build apk --releaseflutter build apk --release
+flutter build apk --release**Option B: Windows Desktop****Option B: Windows Desktop**
 
-# Then sideload to device or run via Android Studio# Then sideload to device or run via Android Studio
+# Output: build/app/outputs/flutter-apk/app-release.apk
 
-``````
+``````powershell```powershell
 
 
+
+✅ App will auto-discover backend via UDP broadcastflutter run -d windowsflutter run -d windows
+
+
+
+---``````
+
+
+
+## 🔍 Network Discovery
+
+
+
+### How It Works**Option C: Android APK****Option C: Android APK**
+
+
+
+1. Backend broadcasts `GREENHOUSE_SERVER:<ip>:5000` every 5 seconds```powershell```powershell
+
+2. Frontend listens for broadcast message
+
+3. Automatic connection establishedflutter build apk --releaseflutter build apk --release
+
+
+
+### If Auto-Discovery Fails# Then sideload to device or run via Android Studio# Then sideload to device or run via Android Studio
+
+
+
+1. Open app **Settings**``````
+
+2. Enter backend IP manually (e.g., `192.168.1.100`)
+
+3. Tap **Test Connection**
+
+4. Dashboard should update
 
 ## Network Discovery## Network Discovery
 
-
-
-The app auto-discovers the backend via UDP broadcast. To verify:The app auto-discovers the backend via UDP broadcast. To verify:
-
-
-
-1. Backend running on local IP (e.g., `192.168.1.100`)1. Backend running on local IP (e.g., `192.168.1.100`)
-
-2. Frontend on same network (same WiFi)2. Frontend on same network (same WiFi)
-
-3. If auto-discovery fails, manually set IP in app Settings3. If auto-discovery fails, manually set IP in app Settings
+### Debug Connection
 
 
 
-**Check backend health:****Check backend health:**
+```powershell
 
-``````
+# Test if backend is reachableThe app auto-discovers the backend via UDP broadcast. To verify:The app auto-discovers the backend via UDP broadcast. To verify:
+
+curl http://localhost:5000/api/health
+
+
+
+# Should respond with: {"status":"healthy"}
+
+```1. Backend running on local IP (e.g., `192.168.1.100`)1. Backend running on local IP (e.g., `192.168.1.100`)
+
+
+
+---2. Frontend on same network (same WiFi)2. Frontend on same network (same WiFi)
+
+
+
+## 📊 Commands Reference3. If auto-discovery fails, manually set IP in app Settings3. If auto-discovery fails, manually set IP in app Settings
+
+
+
+```powershell
+
+# Backend
+
+cd python_backend**Check backend health:****Check backend health:**
+
+python app.py                          # Start server
+
+pip install -r requirements.txt        # Install deps``````
+
+pip install --upgrade reportlab==4.4.4 # Fix reportlab issues
 
 http://<backend-ip>:5000/api/healthhttp://<backend-ip>:5000/api/health
 
-``````
+# Frontend  
+
+cd flutter_frontend``````
+
+flutter pub get                        # Install deps
+
+flutter run -d chrome                  # Run on web
+
+flutter clean                          # Clean build
+
+flutter build apk --release            # Build APK## Useful Commands## Useful Commands
 
 
 
-## Useful Commands## Useful Commands
+# Testing
 
+curl http://localhost:5000/api/health  # Check backend
 
+curl http://localhost:5000/api/sensor-data  # Get readings| Task | Command || Task | Command |
 
-| Task | Command || Task | Command |
+```
 
 |------|---------||------|---------|
 
+---
+
 | Start backend | `cd python_backend; python app.py` || Start backend | `cd python_backend; python app.py` |
+
+## ⚡ Quick Troubleshooting
 
 | Rebuild Flutter | `cd flutter_frontend; flutter pub get; flutter run -d chrome` || Rebuild Flutter | `cd flutter_frontend; flutter pub get; flutter run -d chrome` |
 
+### "Backend won't start"
+
 | Check backend logs | Watch terminal where `python app.py` runs || Check backend logs | Watch terminal where `python app.py` runs |
 
-| Generate PDF report | Visit `/api/export-report` in browser after app runs || Generate PDF report | Visit `/api/export-report` in browser after app runs |
+```powershell
 
-| Restart everything | Kill Python process, stop Flutter, run both again || Restart everything | Kill Python process, stop Flutter, run both again |
+# Issue: ModuleNotFoundError| Generate PDF report | Visit `/api/export-report` in browser after app runs || Generate PDF report | Visit `/api/export-report` in browser after app runs |
+
+# Solution:
+
+pip install --upgrade reportlab==4.4.4| Restart everything | Kill Python process, stop Flutter, run both again || Restart everything | Kill Python process, stop Flutter, run both again |
 
 
 
-## Known Limitations## Known Limitations
+# Issue: Port 5000 already in use
+
+# Solution:
+
+netstat -ano | findstr :5000## Known Limitations## Known Limitations
+
+# Kill the process and try again
+
+```
 
 
 
-- **No cloud:** Data stays on local network- **No cloud:** Data stays on local network
+### "Frontend can't connect"- **No cloud:** Data stays on local network- **No cloud:** Data stays on local network
 
-- **No authentication:** Works on trusted networks only- **No authentication:** Works on trusted networks only
 
-- **Single user:** Not designed for concurrent users- **Single user:** Not designed for concurrent users
 
-- **No VPN/remote:** Requires direct LAN access- **No VPN/remote:** Requires direct LAN access
+```powershell- **No authentication:** Works on trusted networks only- **No authentication:** Works on trusted networks only
 
-- **Windows Firewall:** May block port 5000 (allow in firewall settings)- **Windows Firewall:** May block port 5000 (allow in firewall settings)
+# Issue: "Connection refused"
 
-> 3. Deploy the backend on a cloud server (AWS, Azure, Google Cloud)
+# Solutions:- **Single user:** Not designed for concurrent users- **Single user:** Not designed for concurrent users
+
+# 1. Is backend running?
+
+curl http://localhost:5000/api/health- **No VPN/remote:** Requires direct LAN access- **No VPN/remote:** Requires direct LAN access
+
+
+
+# 2. Same WiFi network?- **Windows Firewall:** May block port 5000 (allow in firewall settings)- **Windows Firewall:** May block port 5000 (allow in firewall settings)
+
+# - Backend on 2.4GHz WiFi ✅
+
+# - Frontend on 2.4GHz WiFi ✅> 3. Deploy the backend on a cloud server (AWS, Azure, Google Cloud)
+
+# - Both visible on network ✅
 
 ## Troubleshooting> 4. Configure firewall rules and security groups
 
-> 5. Implement proper authentication and authorization
+# 3. Firewall blocking port 5000?
 
-### Backend won't start> 6. Test thoroughly in production-like environments
+# - Windows Defender Firewall> 5. Implement proper authentication and authorization
+
+# - Settings → Allow app through firewall
+
+# - Add port 5000### Backend won't start> 6. Test thoroughly in production-like environments
+
+```
 
 - Verify Python is installed: `python --version`> 7. Follow app store guidelines if publishing to Google Play or Apple App Store
 
+### "APEX data not loading"
+
 - Reinstall reportlab if issues: `pip install --upgrade reportlab==4.4.4`>
 
-- Check port 5000 is free: `netstat -ano | findstr :5000`> **For Local/Development Use:**
+```powershell
 
-> This guide focuses on local deployment for testing and development purposes, which is sufficient for:
+# Issue: No sensor readings- Check port 5000 is free: `netstat -ano | findstr :5000`> **For Local/Development Use:**
 
-### Frontend can't connect> - Academic projects and demonstrations
+# Solutions:
 
-- Verify backend is running and reachable on same network> - Proof-of-concept implementations
+# 1. Check .env ORACLE_APEX_URL> This guide focuses on local deployment for testing and development purposes, which is sufficient for:
 
-- Check Windows Firewall allows port 5000> - Local greenhouse monitoring within a single network
+# 2. Verify internet connection
 
-- Manually set backend IP in app Settings if auto-discovery fails> - Development and debugging
+# 3. Look for errors in Flask terminal:### Frontend can't connect> - Academic projects and demonstrations
+
+#    "ERROR: APEX connection failed"
+
+```- Verify backend is running and reachable on same network> - Proof-of-concept implementations
 
 
 
-### APEX data not loading---
+### "AI recommendations not appearing"- Check Windows Firewall allows port 5000> - Local greenhouse monitoring within a single network
+
+
+
+```powershell- Manually set backend IP in app Settings if auto-discovery fails> - Development and debugging
+
+# This is optional - app works without it
+
+# To enable:
+
+# 1. Set GEMINI_API_KEY in .env
+
+# 2. Restart backend: python app.py### APEX data not loading---
+
+# 3. Reload app
 
 - Verify ORACLE_APEX_URL in `.env` is correct
 
-- Check internet connection (APEX must be reachable)---
+# Without API key, app uses fallback recommendations
 
-- Look for errors in Flask terminal output
+```- Check internet connection (APEX must be reachable)---
 
-## System Requirements
 
-## Next Steps
+
+---- Look for errors in Flask terminal output
+
+
+
+## 🎯 Next Steps## System Requirements
+
+
+
+1. ✅ Backend running?  ## Next Steps
+
+   Visit `http://localhost:5000/api/health`
 
 ### Development Machine
 
-See `README.md` for architecture and features, `USER_MANUAL.md` for app walkthrough.- **OS**: Windows 10/11, macOS 10.15+, or Linux (Ubuntu 20.04+)
+2. ✅ Frontend can connect?  
 
-- **RAM**: Minimum 8GB (16GB recommended)
-- **Storage**: 10GB free space
+   Check Settings → Test ConnectionSee `README.md` for architecture and features, `USER_MANUAL.md` for app walkthrough.- **OS**: Windows 10/11, macOS 10.15+, or Linux (Ubuntu 20.04+)
+
+
+
+3. ✅ Seeing data?  - **RAM**: Minimum 8GB (16GB recommended)
+
+   Dashboard should show live readings- **Storage**: 10GB free space
+
 - **Internet**: Stable connection for package downloads
 
-### Backend Server
-- **OS**: Windows Server 2019+ or Linux (Ubuntu 20.04+)
-- **RAM**: Minimum 2GB (4GB recommended)
+**Need help?**
+
+- See [README.md](README.md) for feature overview### Backend Server
+
+- See [USER_MANUAL.md](USER_MANUAL.md) for app guide- **OS**: Windows Server 2019+ or Linux (Ubuntu 20.04+)
+
+- Check Flask terminal for backend errors- **RAM**: Minimum 2GB (4GB recommended)
+
 - **CPU**: 2 cores minimum
 - **Storage**: 5GB free space
 - **Python**: Version 3.8 or higher

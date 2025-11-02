@@ -1,48 +1,107 @@
-# EcoView Documentation
+# 📚 EcoView Documentation
 
-Quick guide to documentation files:
+Quick navigation guide for all documentation files.
 
-## For Setup & Development
-**`README.md`** - Start here
-- Quick start (backend + frontend)
-- Dependencies and versions
-- Key features overview
-- Troubleshooting common issues
+---
 
-**`DEPLOYMENT_GUIDE.md`** - Installation details
-- Complete setup instructions for Windows/Mac/Linux
-- Backend Flask setup
-- Flutter app build and deploy
-- Network configuration
-- Known limitations and fixes
+## 🎯 Where to Start?
 
-## For Using the App
-**`USER_MANUAL.md`** - App walkthrough
-- Dashboard features
-- Reading sensor data
-- Alerts and recommendations
-- Exporting reports
-- Connecting to backend
-- Troubleshooting connection issues
+### 👨‍💻 I want to **Set Up & Run the App**
+→ **[README.md](README.md)**
 
-## Quick Ref
+Features overview, quick start commands, requirements check, troubleshooting basics.
 
-| I want to... | See... |
-|---|---|
-| Run the app locally | README.md |
-| Install/configure backend | DEPLOYMENT_GUIDE.md |
-| Build Flutter app | DEPLOYMENT_GUIDE.md |
-| Use the app | USER_MANUAL.md |
-| Fix connection problems | USER_MANUAL.md > Troubleshooting |
-| Fix backend issues | DEPLOYMENT_GUIDE.md > Troubleshooting |
+**Time needed:** 10-15 minutes to get running
 
-## File Sizes
-- README.md: ~120 lines (quick start)
-- DEPLOYMENT_GUIDE.md: ~160 lines (setup)
-- USER_MANUAL.md: ~130 lines (usage)
-- DOCUMENTATION_README.md: this file
+---
 
-All documentation reflects the actual setup process and known workarounds (e.g., reportlab 4.4.4 for Python 3.14).
+### 🛠️ I'm having **Technical Setup Issues**
+→ **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**
+
+Detailed backend installation, network discovery, command reference, in-depth troubleshooting.
+
+**Time needed:** 20-30 minutes with troubleshooting
+
+---
+
+### 📱 I want to **Use the App**
+→ **[USER_MANUAL.md](USER_MANUAL.md)**
+
+Dashboard walkthrough, feature explanations, connection guide, optimal sensor ranges, tips.
+
+**Time needed:** 5-10 minutes to learn basics
+
+---
+
+## 📋 Quick Reference
+
+| Question | Answer | See |
+|----------|--------|-----|
+| **How do I start?** | Clone repo, install deps, run backend & app | README.md |
+| **Backend won't start?** | Python version, port conflicts, missing packages | DEPLOYMENT_GUIDE.md |
+| **App can't find backend?** | WiFi, firewall, manual IP settings | USER_MANUAL.md |
+| **APEX data not loading?** | Check URL, internet connection | DEPLOYMENT_GUIDE.md |
+| **How do I use the app?** | Dashboard, sensors, alerts, export | USER_MANUAL.md |
+| **What are optimal ranges?** | Temperature, humidity, CO₂, light | USER_MANUAL.md |
+| **How do I fix connection issues?** | Test endpoint, manual IP, firewall | USER_MANUAL.md |
+| **What features are available?** | Dashboard, AI, PDF, alerts | README.md |
+
+---
+
+## 📊 Documentation Overview
+
+```
+README.md ─────────────────────────┐
+(Setup & Overview)                 │
+Features, Quick Start,             │
+Architecture, Troubleshooting      │
+                                   ├──► START HERE
+                                   │
+                              ┌────┴─────────────────┐
+                              │                      │
+                    DEPLOYMENT_GUIDE.md     USER_MANUAL.md
+                    (Dev Setup)              (Using the App)
+                    Backend install,        Dashboard,
+                    Flask config,           Features,
+                    Network setup,          Alerts,
+                    Commands,               Connection,
+                    Deep troubleshooting    Usage tips
+                              │                      │
+                              └────────────┬─────────┘
+                                           │
+                            Run backend  +  Run app
+                                    Success! ✅
+```
+
+---
+
+## 🔍 All Documentation Files
+
+| File | Purpose | Length | Audience |
+|------|---------|--------|----------|
+| **README.md** | Feature overview & quick start | ~200 lines | Everyone |
+| **DEPLOYMENT_GUIDE.md** | Detailed setup & troubleshooting | ~140 lines | Developers |
+| **USER_MANUAL.md** | App features & usage | ~180 lines | End Users |
+| **DOCUMENTATION_README.md** | This navigation file | ~80 lines | Everyone |
+
+---
+
+## ✅ Checklist: Getting Started
+
+- [ ] Read [README.md](README.md) (5 min)
+- [ ] Follow Quick Start in README
+- [ ] Backend running? Check `http://localhost:5000/api/health`
+- [ ] App sees backend? Check dashboard
+- [ ] Read [USER_MANUAL.md](USER_MANUAL.md) to learn features
+- [ ] Stuck? Check [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+
+---
+
+<div align="center">
+
+**Ready to start? 👉 [Go to README.md](README.md)**
+
+</div>
 ## 📊 Document Statistics
 
 ### DEPLOYMENT_GUIDE.md
