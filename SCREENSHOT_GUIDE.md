@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed descriptions of each UI screen. This guide shows where to place each screenshot.
+The `USER_MANUAL_QUICK.md` includes **24 image placeholders** with detailed descriptions of each UI screen. The dashboard displays **10 sensor cards** in a responsive grid layout. This guide shows where to place each screenshot.
 
 ---
 
@@ -16,23 +16,27 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
 - **Content to capture:**
   - App header: "🌱 EcoView - Greenhouse Monitor"
   - Status bar: "✅ ALL SYSTEMS NORMAL"
-  - 6 sensor cards in grid (2 columns × 3 rows)
-  - Temperature: 22.5°C ✅
-  - Humidity: 68% ✅
-  - Soil: 52% ✅
-  - Light: 4200 lux ✅
-  - CO₂: 820 ppm ✅
-  - Air Quality: 185 ppm ✅
+  - 10 sensor cards in responsive grid layout:
+    - 🌡️ Temperature: 28.9°C ✅
+    - 💧 Humidity: 43.5% ✅
+    - 🌱 Soil Moisture: 36% ✅
+    - ☀️ Light: 1133 lux ✅
+    - 🌫️ Air Quality (MQ135): 0 ppm ✅
+    - 🔥 Flammable Gas (MQ2): 0 ppm ✅
+    - 🌬️ Carbon Monoxide (MQ7): 0 ppm ✅
+    - 📍 Pressure: 1005 hPa ✅
+    - ☁️ CO₂: 400 ppm ✅
+    - ⬆️ Altitude: 5.8 m ✅
   - Bottom navigation: 🔔 📊 📄 ⚙️
-- **Instruction:** "Tap any card to see 24-hour graph"
+- **Instruction:** "Tap any card to see detailed view and 24-hour graph"
 
 #### 2. Dashboard with Yellow Alert
 **File:** `docs/screenshots/02_dashboard_with_alert.png`
 - **Location:** Same as screenshot 1 but with one sensor yellow
 - **Content to capture:**
   - One card (e.g., Humidity) is **YELLOW background**
-  - Shows 75% humidity
-  - Other 5 cards still green
+  - Shows 75% humidity (above optimal)
+  - Other 9 cards still green
   - Bell icon 🔔 has red notification dot
   - Text: "⚠️ 1 Alert Active"
 - **Instruction:** "Tap 🔔 bell to see alert details"
@@ -59,7 +63,7 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
 
 ---
 
-### Detailed Sensor Views (6 images)
+### Detailed Sensor Views (10 images)
 
 #### 5. Temperature Detail Screen
 **File:** `docs/screenshots/05_sensor_detail_temperature.png`
@@ -127,19 +131,74 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
 **File:** `docs/screenshots/10_sensor_detail_air_quality.png`
 - **Location:** After tapping Air Quality card
 - **Content to capture:**
-  - Display: "185 ppm" in green
-  - Status: "Good - Clean air ✅"
+  - Display: "0 ppm" in green
+  - Status: "Excellent - Clean air ✅"
   - Quality indicator showing low particulates
   - Range: <200 ppm (good)
-  - Flat/stable trend line
+  - Flat/stable trend line (MQ135 sensor)
   - AI note: "Air circulation excellent"
+
+#### 11. Flammable Gas (MQ2) Detail Screen
+**File:** `docs/screenshots/11_sensor_detail_flammable_gas.png`
+- **Location:** After tapping Flammable Gas card
+- **Content to capture:**
+  - Display: "0 ppm" in green
+  - Status: "Safe - No flammable gas detected ✅"
+  - Safety indicator showing safe zone
+  - Range: <300 ppm (safe), 300-750 ppm (yellow), >750 ppm (critical red)
+  - Flat/stable trend line (MQ2 sensor)
+  - AI note: "All flammable gas sensors reading normal"
+
+#### 12. Carbon Monoxide (MQ7) Detail Screen
+**File:** `docs/screenshots/12_sensor_detail_carbon_monoxide.png`
+- **Location:** After tapping Carbon Monoxide card
+- **Content to capture:**
+  - Display: "0 ppm" in green
+  - Status: "Safe - No CO detected ✅"
+  - Safety indicator showing safe zone
+  - Range: <300 ppm (safe), 300-750 ppm (yellow), >750 ppm (critical red)
+  - Flat/stable trend line (MQ7 sensor)
+  - AI note: "Carbon monoxide levels normal and safe"
+
+#### 13. Pressure Detail Screen
+**File:** `docs/screenshots/13_sensor_detail_pressure.png`
+- **Location:** After tapping Pressure card
+- **Content to capture:**
+  - Display: "1005 hPa" in green
+  - Status: "Normal atmospheric pressure ✅"
+  - Pressure reference indicator (normal range ~1010-1020 hPa)
+  - 24-hour pressure trend line
+  - Stats: "Min: 1002 hPa | Max: 1008 hPa"
+  - AI note: "Stable pressure conditions"
+
+#### 14. CO₂ Level Detail Screen
+**File:** `docs/screenshots/14_sensor_detail_co2.png`
+- **Location:** After tapping CO₂ card
+- **Content to capture:**
+  - Display: "400 ppm" in green
+  - Status: "Optimal greenhouse level ✅"
+  - Range: 800-1200 ppm enriched (greenhouse), 400 ppm (outdoor reference)
+  - Comparison: "Outdoor: 400 ppm | Your greenhouse: 400 ppm"
+  - Trend line showing stability
+  - AI note: "CO₂ level supports photosynthesis"
+
+#### 15. Altitude Detail Screen
+**File:** `docs/screenshots/15_sensor_detail_altitude.png`
+- **Location:** After tapping Altitude card
+- **Content to capture:**
+  - Display: "5.8 m" in green
+  - Status: "Reference elevation ✅"
+  - Description: "Altitude used for pressure calculations"
+  - Static reference information (does not change frequently)
+  - Pressure and altitude relationship explanation
+  - AI note: "Altitude locked for accurate readings"
 
 ---
 
 ### Alert Screens (4 images)
 
-#### 11. Yellow Alert on Dashboard
-**File:** `docs/screenshots/11_dashboard_yellow_alert.png`
+#### 16. Yellow Alert on Dashboard
+**File:** `docs/screenshots/16_dashboard_yellow_alert.png`
 - **Location:** Main dashboard view
 - **Content to capture:**
   - Humidity card: "75%" in YELLOW
@@ -147,8 +206,8 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
   - Bell icon with red dot
 - **Instruction:** "Yellow = Monitor, not emergency"
 
-#### 12. Alerts Panel - Full Details
-**File:** `docs/screenshots/12_alerts_panel_full.png`
+#### 17. Alerts Panel - Full Details
+**File:** `docs/screenshots/17_alerts_panel_full.png`
 - **Location:** After tapping 🔔 bell icon
 - **Content to capture:**
   - Full alert information:
@@ -161,7 +220,7 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
   - Resolved alerts section below
 
 #### 13. Critical Red Alert
-**File:** `docs/screenshots/13_critical_alert.png`
+**File:** `docs/screenshots/18_critical_alert.png`
 - **Location:** When sensor reaches critical level
 - **Content to capture:**
   - Dashboard card: RED background
@@ -173,7 +232,7 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
   - FLASHING or bright red visual treatment
 
 #### 14. Multiple Alerts View
-**File:** `docs/screenshots/14_multiple_alerts.png`
+**File:** `docs/screenshots/19_multiple_alerts.png`
 - **Location:** Alerts panel with 2-3 active alerts
 - **Content to capture:**
   - Stacked alert cards:
@@ -188,8 +247,8 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
 
 ### Report Screens (3 images)
 
-#### 15. Report Generation Progress
-**File:** `docs/screenshots/15_report_generating.png`
+#### 20. Report Generation Progress
+**File:** `docs/screenshots/20_report_generating.png`
 - **Location:** Screen shown while generating PDF
 - **Content to capture:**
   - "GENERATING GREENHOUSE REPORT" title
@@ -201,8 +260,8 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
   - "Please wait 10-15 seconds" message
   - Spinner/progress indicator
 
-#### 16. Report Ready to Download
-**File:** `docs/screenshots/16_report_ready.png`
+#### 21. Report Ready to Download
+**File:** `docs/screenshots/21_report_ready.png`
 - **Location:** After PDF generation complete
 - **Content to capture:**
   - "✅ REPORT GENERATED SUCCESSFULLY"
@@ -214,8 +273,8 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
     - [📤 Share]
     - [📧 Email]
 
-#### 17. PDF Report Preview
-**File:** `docs/screenshots/17_report_preview.pdf`
+#### 22. PDF Report Preview
+**File:** `docs/screenshots/22_report_preview.pdf`
 - **Location:** Open a generated PDF file
 - **Content to capture:**
   - Report header with title and date
@@ -232,8 +291,8 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
 
 ### Settings Screens (4 images)
 
-#### 18. Settings Main Screen
-**File:** `docs/screenshots/18_settings_main.png`
+#### 23. Settings Main Screen
+**File:** `docs/screenshots/23_settings_main.png`
 - **Location:** After tapping ⚙️ Settings icon
 - **Content to capture:**
   - Settings title and layout
@@ -247,8 +306,8 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
   - Preferences section with toggles
   - Version info at bottom
 
-#### 19. Manual IP Configuration
-**File:** `docs/screenshots/19_settings_manual_ip.png`
+#### 24. Manual IP Configuration
+**File:** `docs/screenshots/24_settings_manual_ip.png`
 - **Location:** Settings screen with Manual IP selected
 - **Content to capture:**
   - "Manual Server Configuration" header
@@ -259,8 +318,8 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
   - [Test Connection] button
   - Status display area (for ✅ or ❌)
 
-#### 20. Notifications Settings
-**File:** `docs/screenshots/20_settings_notifications.png`
+#### 25. Notifications Settings
+**File:** `docs/screenshots/25_settings_notifications.png`
 - **Location:** Settings > Notifications subsection
 - **Content to capture:**
   - Toggle switches:
@@ -276,8 +335,8 @@ The `USER_MANUAL_QUICK.md` now includes **22 image placeholders** with detailed 
     - From: [6:00 PM]
     - To: [7:00 AM]
 
-#### 21. About & Version
-**File:** `docs/screenshots/21_settings_about.png`
+#### 26. About & Version
+**File:** `docs/screenshots/26_settings_about.png`
 - **Location:** Settings > About section
 - **Content to capture:**
   - App name and logo

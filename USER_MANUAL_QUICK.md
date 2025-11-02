@@ -41,7 +41,7 @@ flutter run -d chrome
 **3. Verified Everything Works**
 - ✅ Backend polling APEX every 3 seconds
 - ✅ App receiving live sensor data
-- ✅ Dashboard showing temperature, humidity, CO₂, light, soil moisture
+- ✅ Dashboard with 10 sensor cards (Temperature, Humidity, Soil, Light, Air Quality, Flammable Gas, CO, Pressure, CO₂, Altitude)
 - ✅ PDF export working with AI recommendations
 
 **4. Built Mobile App (Android)**
@@ -231,6 +231,8 @@ This happened to us when:
 
 **Live readings from APEX (every 3 seconds):**
 
+Dashboard displays 10 sensor cards in a responsive grid:
+
 ```
 🏡 EcoView Dashboard          [↻ Refresh]
 ═════════════════════════════════════════
@@ -239,16 +241,24 @@ Status: All Systems Normal ✅ (3 seconds ago)
 
 ┌─────────────────────────────────────┐
 │  🌡️ TEMPERATURE    💧 HUMIDITY     │
-│  23.2°C ✅         65% ✅          │
+│  28.9°C            43.5%           │
 │  (Optimal 21-27)   (Optimal 60-75) │
 │                                   │
 │  🌱 SOIL MOISTURE  ☀️ LIGHT       │
-│  58% ✅            4500 lux ✅    │
+│  36%               1133 lux        │
 │  (Optimal 50-70)   (Optimal 2K-5K)│
 │                                   │
-│  🌫️ AIR QUALITY    🔥 GAS CHECK   │
-│  180 ppm ✅        Safe ✅        │
-│  MQ135 Good        MQ2/MQ7 Safe   │
+│  🌫️ AIR QUALITY    🔥 FLAMMABLE   │
+│  0 ppm             0 ppm          │
+│  MQ135 Safe        MQ2 Safe       │
+│                                   │
+│  🌬️ CARBON MONOXIDE 📍 PRESSURE   │
+│  0 ppm             1005 hPa       │
+│  MQ7 Safe          Safe Range     │
+│                                   │
+│  ☁️ CO₂            ⬆️ ALTITUDE    │
+│  400 ppm           5.8 m          │
+│  Normal            Reference      │
 └─────────────────────────────────────┘
 
 ⚠️ Alerts: None active
@@ -258,7 +268,7 @@ Navigation: [🔔] [📊] [📄] [⚙️]
 
 ### Real Data from APEX System (Live)
 
-**Current readings (live from APEX sensor network):**
+**Current readings (live from APEX sensor network) - 10 Dashboard Cards:**
 - 🌡️ **Temperature:** 28.9°C (BMP280: 29.21°C + DHT22: 28.5°C average) - Optimal range 21-27°C
 - 💧 **Humidity:** 43.5% - Optimal range 60-75%
 - 🌱 **Soil Moisture:** 36% - Optimal range 50-70%
@@ -266,9 +276,9 @@ Navigation: [🔔] [📊] [📄] [⚙️]
 - 🌫️ **Air Quality (MQ135):** 0 ppm - Good (<200 ppm = good)
 - 🔥 **Flammable Gas (MQ2):** 0 ppm - Safe (<300 ppm = safe)
 - 🌬️ **Carbon Monoxide (MQ7):** 0 ppm - Safe (<300 ppm = safe)
-- 🔥 **Flame Detection:** Not detected ✅
-- 📊 **Data Age:** 4 seconds (fresh cache)
-- 📍 **Additional:** Pressure 1005 hPa, Altitude 5.8 m
+- � **Pressure:** 1005 hPa - Normal atmospheric pressure
+- ☁️ **CO₂ Level:** 400 ppm - Normal outdoor/greenhouse level
+- ⬆️ **Altitude:** 5.8 m - Reference elevation
 
 **System Status:** All sensors operational and reporting ✅
 
