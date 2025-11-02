@@ -2,15 +2,16 @@
 
 ## Table of Contents
 1. [How We Set It Up](#how-we-set-it-up)
-2. [Getting the App Running](#getting-the-app-running)
-3. [Dashboard Overview](#dashboard-overview)
-4. [Viewing Sensor Data](#viewing-sensor-data)
-5. [Alerts & Notifications](#alerts--notifications)
-6. [Generating Reports](#generating-reports)
-7. [Connection Issues & Fixes](#connection-issues--fixes)
-8. [Daily Usage](#daily-usage)
-9. [FAQ](#faq-real-questions-we-had)
-10. [Quick Reference Card](#quick-reference-card)
+2. [Platform Options](#platform-options)
+3. [Getting the App Running](#getting-the-app-running)
+4. [Dashboard Overview](#dashboard-overview)
+5. [Viewing Sensor Data](#viewing-sensor-data)
+6. [Alerts & Notifications](#alerts--notifications)
+7. [Generating Reports](#generating-reports)
+8. [Connection Issues & Fixes](#connection-issues--fixes)
+9. [Daily Usage](#daily-usage)
+10. [FAQ](#faq-real-questions-we-had)
+11. [Quick Reference Card](#quick-reference-card)
 
 ---
 
@@ -43,11 +44,145 @@ flutter run -d chrome
 - ✅ Dashboard showing temperature, humidity, CO₂, light, soil moisture
 - ✅ PDF export working with AI recommendations
 
+**4. Built Mobile App (Android)**
+```powershell
+cd flutter_frontend
+flutter build apk --release
+```
+- Generated: `build/app/outputs/flutter-app-release.apk`
+- Copied to mobile device
+- Users can install directly or via file transfer
+
+---
+
+## Platform Options
+
+### Choose Your Platform
+
+The EcoView app runs on **3 different platforms**. Pick the one that fits you:
+
+| Platform | Device | How to Install | Best For |
+|----------|--------|---|---|
+| **📱 Android Mobile** | Phone/Tablet | APK file + tap to install | Most people - portable & convenient |
+| **💻 Windows Desktop** | Windows PC/Laptop | `flutter run -d windows` | Office/Workstation monitoring |
+| **🌐 Web Browser** | Chrome/Firefox | `flutter run -d chrome` | Quick testing, no installation |
+
+### Real Setup We Used
+
+**Mobile**: Built APK using `flutter build apk --release` and sent to team members
+**Desktop**: Ran on Windows for backend development/testing
+**Web**: Used Chrome during development for fastest testing
+
+### Platform Comparison
+
+| Feature | Android | Windows | Web |
+|---------|---------|---------|-----|
+| Installation | 1 tap (APK) | Requires Flutter SDK | None (browser) |
+| Performance | Fast | Very Fast | Good |
+| Offline | ❌ No | ✅ Yes | ❌ No |
+| Auto-start on boot | ✅ Yes | ❌ No | ❌ No |
+| File export | ✅ (PDF) | ✅ (PDF) | ✅ (PDF) |
+| Network required | ✅ WiFi | ✅ WiFi | ✅ WiFi |
+| Recommended | ✅ **BEST** | Good for office | Good for testing |
+
 ---
 
 ## Getting the App Running
 
-### Real World Scenario: This is What Happened
+### Option 1: Android Mobile (APK) - Easiest & Most Popular
+
+**📱 On Your Android Phone:**
+
+1. **Receive the APK file**
+   - File: `flutter-app-release.apk`
+   - Size: ~50-60 MB
+   - From: USB transfer, email, or cloud drive
+
+2. **Enable installation from unknown sources**
+   - Settings → Security → Unknown Sources → Enable
+   - (Or: Settings → Apps & notifications → Special app access → Install unknown apps → Your file manager → Allow)
+
+3. **Install the APK**
+   - Open file manager, find `flutter-app-release.apk`
+   - Tap to install
+   - Wait 5-10 seconds
+   - App appears in your app drawer
+
+4. **First time opening the app**
+   - Tap app icon (🌱 EcoView)
+   - App auto-discovers backend on your home WiFi
+   - Dashboard loads automatically
+   - **No setup needed** - just works! ✅
+
+5. **If auto-discovery fails** (different WiFi or 5GHz)
+   - Tap ⚙️ Settings icon
+   - Select "Manual IP Address"
+   - Enter backend IP: `192.168.1.100` (example)
+   - Keep port: `5000`
+   - Tap [Test Connection]
+   - Wait for ✅ confirmation
+
+**Real APK we built:**
+- Command: `flutter build apk --release`
+- Build time: ~3 minutes
+- Output file: `build/app/outputs/flutter-app-release.apk`
+- Compatibility: Android 5.0+ (API 21+)
+- Install method: Direct APK or via package manager
+
+### Option 2: Windows/Chrome (Web)
+
+**💻 On Your Computer:**
+
+1. **Start the backend first**
+   ```powershell
+   cd python_backend
+   python app.py
+   ```
+   Wait for: `✅ APEX poll successful!`
+
+2. **Run Flutter app for web/desktop**
+   ```powershell
+   cd flutter_frontend
+   flutter pub get
+   flutter run -d chrome      # For web browser
+   flutter run -d windows     # For Windows desktop
+   ```
+
+3. **App automatically discovers backend**
+   - Connects to `192.168.1.100:5000`
+   - Dashboard appears
+   - Live sensor data shows
+
+4. **If connection fails**
+   - Check backend is running (look for `✅ APEX poll successful!`)
+   - Try manual IP in Settings
+   - Verify both on same WiFi network
+
+### Option 3: Building Your Own APK
+
+**If you need to rebuild the app:**
+
+```powershell
+cd flutter_frontend
+
+# Option A: Release build (for distribution)
+flutter build apk --release
+# Output: build/app/outputs/flutter-app-release.apk
+
+# Option B: Debug build (for testing)
+flutter build apk --debug
+# Output: build/app/outputs/flutter-app-debug.apk
+
+# Option C: Install directly to connected phone
+flutter install -d <device-id>
+```
+
+**After building:**
+- APK file ready in `build/app/outputs/`
+- Share via email, USB, cloud drive, messaging
+- Users install directly on Android phone
+
+### Real World Scenario: How We Did It
 
 **On Your Computer (Backend):**
 1. Open terminal/PowerShell
@@ -60,12 +195,17 @@ flutter run -d chrome
    🤖 AI service ready (fallback mode)
    ```
 
-**On Your Phone/Browser:**
-1. Install/build the Flutter app
-2. Open the app
-3. It automatically finds your backend server
-4. Dashboard appears with live greenhouse data
-5. **No manual setup needed** - just works! ✅
+**On Mobile Device (with APK installed):**
+1. Tap app icon (🌱 EcoView)
+2. App automatically finds your backend server
+3. Dashboard appears with live greenhouse data
+4. **No manual setup needed** - just works! ✅
+
+**On Windows/Web:**
+1. Run Flutter app: `flutter run -d chrome`
+2. Browser opens automatically
+3. App connects to backend
+4. Dashboard shows live data
 
 ### If Auto-Discovery Doesn't Work
 
@@ -75,12 +215,13 @@ This happened to us when:
 - Backend port changed
 
 **Solution we used:**
-1. Open App → Settings
-2. Manually enter backend IP: `192.168.1.100`
-3. Keep port: `5000`
-4. Tap "Test Connection"
-5. Wait for ✅ confirmation
-6. Close settings - dashboard updates
+1. Open App → Settings (⚙️)
+2. Select: "Manual IP Address"
+3. Enter backend IP: `192.168.1.100`
+4. Keep port: `5000`
+5. Tap "Test Connection"
+6. Wait for ✅ confirmation
+7. Close settings - dashboard updates
 
 ---
 
