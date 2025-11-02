@@ -2,17 +2,18 @@
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [System Requirements](#system-requirements)
-3. [Architecture Overview](#architecture-overview)
-4. [Pre-Deployment Checklist](#pre-deployment-checklist)
-5. [Backend Deployment](#backend-deployment)
-6. [Frontend Deployment](#frontend-deployment)
-7. [Hardware Setup](#hardware-setup)
-8. [Configuration](#configuration)
-9. [Testing](#testing)
-10. [Troubleshooting](#troubleshooting)
-11. [Maintenance & Updates](#maintenance--updates)
-12. [Security Best Practices](#security-best-practices)
+2. [Important Note: Local Testing Only](#important-note-local-testing-only)
+3. [System Requirements](#system-requirements)
+4. [Architecture Overview](#architecture-overview)
+5. [Pre-Deployment Checklist](#pre-deployment-checklist)
+6. [Backend Deployment](#backend-deployment)
+7. [Frontend Deployment](#frontend-deployment)
+8. [Hardware Setup](#hardware-setup)
+9. [Configuration](#configuration)
+10. [Testing](#testing)
+11. [Troubleshooting](#troubleshooting)
+12. [Maintenance & Updates](#maintenance--updates)
+13. [Security Best Practices](#security-best-practices)
 
 ---
 
@@ -24,6 +25,43 @@ The EcoView Greenhouse Monitoring System consists of three main components:
 - **IoT Hardware**: ESP32/Arduino with various sensors
 
 This guide provides step-by-step instructions for deploying and configuring all components.
+
+---
+
+## Important Note: Local Testing Only
+
+> **⚠️ IMPORTANT DEPLOYMENT NOTICE**
+>
+> This application was developed and tested in a **local development environment only**. The system has NOT been:
+> - ❌ Deployed to Google Play Store
+> - ❌ Deployed to Apple App Store
+> - ❌ Tested in production cloud environments
+> - ❌ Configured for public internet access
+>
+> **Current Testing Scope:**
+> - ✅ Local network deployment (same WiFi network)
+> - ✅ Direct APK installation on Android devices
+> - ✅ Development environment testing
+> - ✅ Local MQTT broker communication
+>
+> **For Production Deployment:**
+> If you plan to deploy this system for production use, you will need to:
+> 1. Configure proper SSL/TLS certificates for HTTPS
+> 2. Set up a production-grade database (PostgreSQL, MySQL)
+> 3. Deploy the backend on a cloud server (AWS, Azure, Google Cloud)
+> 4. Configure firewall rules and security groups
+> 5. Implement proper authentication and authorization
+> 6. Test thoroughly in production-like environments
+> 7. Follow app store guidelines if publishing to Google Play or Apple App Store
+>
+> **For Local/Development Use:**
+> This guide focuses on local deployment for testing and development purposes, which is sufficient for:
+> - Academic projects and demonstrations
+> - Proof-of-concept implementations
+> - Local greenhouse monitoring within a single network
+> - Development and debugging
+
+---
 
 ---
 
