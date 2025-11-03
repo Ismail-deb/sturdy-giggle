@@ -227,18 +227,24 @@ class SensorData {
   }
 
   // Helper method to determine status of light
-  // Based on raw ADC values (0-4095)
+  // Based on raw light sensor values (inverted: lower = brighter)
+  // Raw thresholds:
+  // 0-250 = Bright (Full sunlight / strong artificial light)
+  // 251-650 = Moderate (Cloudy day / shade in greenhouse)
+  // 651-950 = Dim Indoor (Dim lighting, early morning/evening)
+  // 951-1250 = Dark Indoor (Minimal light)
+  // >1250 = Dark Night (No light, closed room, or night)
   String getLightStatus() {
-    if (light <= 300) {
-      return 'Dark Night';
-    } else if (light <= 819) {
-      return 'Low Light';
-    } else if (light <= 1638) {
-      return 'Dim Indoor';
-    } else if (light <= 2457) {
-      return 'Moderate';
-    } else {
+    if (light <= 250) {
       return 'Bright';
+    } else if (light <= 650) {
+      return 'Moderate';
+    } else if (light <= 950) {
+      return 'Dim Indoor';
+    } else if (light <= 1250) {
+      return 'Dark Indoor';
+    } else {
+      return 'Dark Night';
     }
   }
 
