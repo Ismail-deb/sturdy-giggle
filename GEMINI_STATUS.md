@@ -3,7 +3,7 @@
 ## ✅ **Gemini API Integration - WORKING!**
 
 ### API Key Status
-- **API Key:** `AIzaSyCprxgY-vmydjnAMuBojZrybxbn9EAf0eE`
+- **API Key:** `AIzaSyCprxgY-vmydjnAMuBojZrybxbn9EAf0eE` ### an example of an API key ###
 - **Status:** ✅ **ACTIVE AND WORKING**
 - **Model:** `gemini-2.5-flash` (Latest stable version)
 - **Tested:** Successfully verified on November 3, 2025
