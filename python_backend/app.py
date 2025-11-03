@@ -203,18 +203,21 @@ def _get_combined_air_quality_status(mq135_ppm, co2_ppm):
 
 def _get_light_status(value):
     """Get status description for light reading
-    NEW THRESHOLDS based on light sensor calibration:
-    • 0-399 = Full sunlight / strong artificial light
-    • 400-799 = Cloudy day / shade in greenhouse
-    • 800-1399 = Dim lighting, early morning/evening
-    • 1400+ = No light, closed room, or night
+    Raw light sensor thresholds:
+    • 0-250 = Bright (Full sunlight / strong artificial light)
+    • 251-650 = Moderate (Cloudy day / shade in greenhouse)
+    • 651-950 = Dim (Dim lighting, early morning/evening)
+    • 951-1250 = Dark Indoor
+    • >1250 = Dark Night (No light, closed room, or night)
     """
-    if value <= 399:
+    if value <= 250:
         return "Bright"
-    elif value <= 799:
+    elif value <= 650:
         return "Moderate"
-    elif value <= 1399:
+    elif value <= 950:
         return "Dim Indoor"
+    elif value <= 1250:
+        return "Dark Indoor"
     else:
         return "Dark Night"
 
