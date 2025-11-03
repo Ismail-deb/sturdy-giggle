@@ -203,23 +203,20 @@ def _get_combined_air_quality_status(mq135_ppm, co2_ppm):
 
 def _get_light_status(value):
     """Get status description for light reading
-    Thresholds based on ambient light intensity (0-4095 raw):
-    • 0-300 = Dark Night (no light / remote areas)
-    • 301-819 = Low Light (parks, moonlight, dim streets)
-    • 820-1638 = Dim Indoor / Early Dusk
-    • 1639-2457 = Moderate (cloudy day or shaded area)
-    • 2458+ = Bright (good daylight)
+    NEW THRESHOLDS based on light sensor calibration:
+    • 0-399 = Full sunlight / strong artificial light
+    • 400-799 = Cloudy day / shade in greenhouse
+    • 800-1399 = Dim lighting, early morning/evening
+    • 1400+ = No light, closed room, or night
     """
-    if value <= 300:
-        return "Dark Night"
-    elif value <= 819:
-        return "Low Light"
-    elif value <= 1638:
-        return "Dim Indoor"
-    elif value <= 2457:
-        return "Moderate"
-    else:
+    if value <= 399:
         return "Bright"
+    elif value <= 799:
+        return "Moderate"
+    elif value <= 1399:
+        return "Dim Indoor"
+    else:
+        return "Dark Night"
 
 def _get_soil_moisture_status(value, thresholds=None):
     """Get status description for soil moisture reading
@@ -885,6 +882,15 @@ def get_sensor_analysis(sensor_type):
                 for field in ('sloi_moisture', 'moisture', 'soil_moisture'):
                     if field in reading and reading[field] is not None:
                         return float(reading[field])
+                return None
+            elif key in ('mq135_drop', 'mq2_drop', 'mq7_drop'):
+                # Gas sensor drops - use ABSOLUTE VALUE (voltage drops are negative, convert to positive PPM)
+                if key in reading and reading[key] is not None:
+                    return abs(float(reading[key]))
+                # Try building derived fields
+                derived = build_derived_from_reading(reading)
+                if key in derived and derived[key] is not None:
+                    return abs(float(derived[key]))
                 return None
             else:
                 if key in reading:

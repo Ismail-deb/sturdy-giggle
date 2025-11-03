@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 // --- FIX: Added intl package import ---
 import 'package:intl/intl.dart';
@@ -26,6 +27,7 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
   String aiAnalysis = '';
   String selectedTimeRange = 'hours';
   String selectedChartType = 'line'; // line, bar, or area
+  Timer? _refreshTimer;
   
   final List<Map<String, String>> timeRanges = [
     {'value': 'seconds', 'label': 'Last Minute'},
@@ -48,6 +50,19 @@ class _SensorAnalysisScreenState extends State<SensorAnalysisScreen> {
     super.initState();
     _loadAnalysis();
     _loadAIAnalysis();
+    
+    // Auto-refresh data every 5 seconds for real-time updates
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        _loadAnalysis();
+      }
+    });
+  }
+  
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
   
   Future<void> _loadAnalysis() async {
