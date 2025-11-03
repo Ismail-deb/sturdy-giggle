@@ -9,6 +9,7 @@ import threading
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
+import json
 # Import the Gemini service
 from gemini_service import get_gemini_analysis, get_gemini_recommendations
 import requests
@@ -38,7 +39,88 @@ _apex_connection_lock = threading.Lock()
 # Load environment variables from .env file
 load_dotenv()
 
+# ============================================================================
+# THRESHOLD MANAGEMENT - Persistent storage for editable thresholds
+# ============================================================================
+
+THRESHOLDS_FILE = os.path.join(os.path.dirname(__file__), 'thresholds.json')
+
+DEFAULT_THRESHOLDS = {
+    "temperature": {
+        "optimal": {"min": 20, "max": 27},
+        "acceptable": {"min": 18, "max": 30}
+    },
+    "humidity": {
+        "optimal": {"min": 45, "max": 70},
+        "acceptable": {"min": 40, "max": 80}
+    },
+    "mq135": {"good": 200, "poor": 500},
+    "mq2": {"safe": 300, "high": 750},
+    "mq7": {"safe": 300, "high": 750},
+    "soil_moisture": {
+        "optimal": {"min": 40, "max": 60},
+        "acceptable": {"min": 30, "max": 70}
+    },
+    "light": {"min": 0, "max": 4095}
+}
+
+def load_thresholds():
+    """Load thresholds from JSON file, merge with defaults"""
+    try:
+        if os.path.exists(THRESHOLDS_FILE):
+            with open(THRESHOLDS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            # Merge with defaults to ensure all keys exist
+            merged = DEFAULT_THRESHOLDS.copy()
+            for key in data:
+                if key in merged and isinstance(merged[key], dict):
+                    merged[key].update(data[key])
+                else:
+                    merged[key] = data[key]
+            return merged
+    except Exception as e:
+        logger.warning(f"Failed to load thresholds file: {e}")
+    return DEFAULT_THRESHOLDS.copy()
+
+def save_thresholds(thresholds_data):
+    """Save thresholds to JSON file"""
+    try:
+        with open(THRESHOLDS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(thresholds_data, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save thresholds: {e}")
+        return False
+
 # Helper functions to determine sensor status
+def _get_status_with_color(status_text):
+    """
+    Map status text to color hex codes for frontend consistency
+    Returns tuple: (status_text, color_hex, severity_level)
+    """
+    status_lower = status_text.lower()
+    
+    # Green statuses (optimal/good)
+    if any(word in status_lower for word in ['optimal', 'good', 'normal', 'bright', 'safe']):
+        return (status_text, '#4CAF50', 'optimal')
+    
+    # Orange statuses (acceptable/moderate/warning)
+    elif any(word in status_lower for word in ['acceptable', 'moderate', 'elevated', 'dim indoor', 'low light']):
+        return (status_text, '#FF9800', 'warning')
+    
+    # Red statuses (critical/poor/high/danger)
+    # Note: "dark night" is neutral for light readings, not critical
+    elif any(word in status_lower for word in ['critical', 'poor', 'high', 'danger']) and 'dark night' not in status_lower:
+        return (status_text, '#F44336', 'critical')
+    
+    # Gray statuses (neutral/informational like "dark night" for light sensors)
+    elif any(word in status_lower for word in ['dark night', 'unknown', 'n/a']):
+        return (status_text, '#9E9E9E', 'unknown')
+    
+    # Default (unknown)
+    else:
+        return (status_text, '#9E9E9E', 'unknown')
+
 def _get_temperature_status(value):
     """Get status description for temperature reading
     Greenhouse optimal: 20-27°C (most vegetables and plants)
@@ -139,26 +221,31 @@ def _get_light_status(value):
     else:
         return "Bright"
 
-def _get_soil_moisture_status(value):
+def _get_soil_moisture_status(value, thresholds=None):
     """Get status description for soil moisture reading
-    Thresholds from APEX groups/data/10 endpoint spec:
-    - <15%: Critical (Low) - Severe drought stress
-    - 15-30%: Low - Dry, irrigation needed
-    - 30-40%: Acceptable (below optimal)
-    - 40-60%: Optimal - Ideal moisture range
-    - 60-80%: Acceptable (above optimal)
-    - 80-90%: High - Wet, risk of overwatering
-    - ≥90%: Critical (High) - Saturated, root rot risk
+    Uses configurable thresholds from thresholds.json
+    Default thresholds:
+    - 30-70%: Acceptable range
+    - 40-60%: Optimal range
     """
+    if thresholds is None:
+        thresholds = load_thresholds()
+    
+    soil_config = thresholds.get('soil_moisture', {})
+    opt_min = soil_config.get('optimal', {}).get('min', 40)
+    opt_max = soil_config.get('optimal', {}).get('max', 60)
+    acc_min = soil_config.get('acceptable', {}).get('min', 30)
+    acc_max = soil_config.get('acceptable', {}).get('max', 70)
+    
     if value < 15:
         return "Critical (Low)"
-    elif value < 30:
+    elif value < acc_min:
         return "Low"
-    elif value < 40:
+    elif value < opt_min:
         return "Acceptable"
-    elif value <= 60:
+    elif value <= opt_max:
         return "Optimal"
-    elif value <= 80:
+    elif value <= acc_max:
         return "Acceptable"
     elif value < 90:
         return "High"
@@ -206,6 +293,34 @@ CORS(app, resources={
         "allow_headers": ["Content-Type"]
     }
 })
+
+# ============================================================================
+# THRESHOLD API ENDPOINTS - Allow frontend to read/write thresholds
+# ============================================================================
+
+@app.route('/api/thresholds', methods=['GET'])
+def get_thresholds():
+    """Get current thresholds configuration"""
+    thresholds = load_thresholds()
+    return jsonify({"thresholds": thresholds}), 200
+
+@app.route('/api/thresholds', methods=['POST'])
+def set_thresholds():
+    """Update thresholds configuration"""
+    try:
+        payload = request.get_json(force=True)
+        if not isinstance(payload, dict):
+            return jsonify({"error": "Invalid payload - must be a dictionary"}), 400
+        
+        # Save the new thresholds
+        success = save_thresholds(payload)
+        if not success:
+            return jsonify({"error": "Failed to save thresholds"}), 500
+        
+        return jsonify({"message": "Thresholds updated successfully", "thresholds": payload}), 200
+    except Exception as e:
+        logger.error(f"Error updating thresholds: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # NOTE: To make this server accessible from tablet or other devices on your network:
 # 1. Make sure the Flask server is running with host='0.0.0.0' 
@@ -505,17 +620,44 @@ def build_derived_from_reading(r):
     # Final soil_moisture uses sloi_moisture when available, otherwise fall back to existing key
     soil_moisture_value = round(sloi_raw) if sloi_raw is not None else round(num("soil_moisture", 45))
 
+    # Get status strings for key sensors
+    humidity_val = round(num("humidity", 0.0), 1)
+    temp_status = _get_temperature_status(temperature) if temperature is not None else "Unknown"
+    humidity_status = _get_humidity_status(humidity_val)
+    soil_status = _get_soil_moisture_status(soil_moisture_value)
+    light_status = _get_light_status(light_intensity)
+    air_quality_status = _get_combined_air_quality_status(mq135_drop, co2_level)
+    
+    # Get color coding for each status
+    temp_status_text, temp_color, temp_severity = _get_status_with_color(temp_status)
+    humidity_status_text, humidity_color, humidity_severity = _get_status_with_color(humidity_status)
+    soil_status_text, soil_color, soil_severity = _get_status_with_color(soil_status)
+    light_status_text, light_color, light_severity = _get_status_with_color(light_status)
+    air_status_text, air_color, air_severity = _get_status_with_color(air_quality_status)
+
     derived = {
         "temperature": temperature,
+        "temperature_status": temp_status_text,
+        "temperature_color": temp_color,
+        "temperature_severity": temp_severity,
         "humidity": round(num("humidity", 0.0), 1),
+        "humidity_status": humidity_status_text,
+        "humidity_color": humidity_color,
+        "humidity_severity": humidity_severity,
         "co2_level": co2_level,
         "light": light_intensity,  # Raw light intensity (0-4095)
         "light_raw": light_intensity,  # Also include as light_raw for compatibility
+        "light_status": light_status_text,
+        "light_color": light_color,
+        "light_severity": light_severity,
         "pressure": round(num("pressure", 0.0), 1),
         "altitude": round(num("altitude", 0.0), 1),
     # Include both fields: prefer sloi_moisture for consumers that request it
     "sloi_moisture": sloi_moisture,
     "soil_moisture": soil_moisture_value,
+        "soil_moisture_status": soil_status_text,
+        "soil_moisture_color": soil_color,
+        "soil_moisture_severity": soil_severity,
         "flame_detected": flame_detected,
         "flame_status": flame_status,
         # Gas sensor values - DIRECT FROM APEX (already in PPM)
@@ -527,7 +669,9 @@ def build_derived_from_reading(r):
         "mq7_baseline": mq7_baseline,
         # Status based on REAL thresholds from system specification
         # COMBINED Air Quality Status (MQ135 + CO2)
-        "air_quality": _get_combined_air_quality_status(mq135_drop, co2_level),
+        "air_quality": air_status_text,
+        "air_quality_color": air_color,
+        "air_quality_severity": air_severity,
         # Individual sensor statuses (for reference/debugging)
         "mq135_status": "Good" if mq135_drop <= 200 else ("Poor" if mq135_drop > 500 else "Moderate"),
         "co2_status": _get_co2_status(co2_level),
@@ -1038,14 +1182,7 @@ def get_alerts():
     """
     Get alerts when sensors are outside normal ranges - ONLY FROM APEX DATA
     Triggers sound notification in frontend when alerts exist.
-    
-    Thresholds (based on THRESHOLDS.md):
-    - Temperature: Outside 21-27°C triggers alert
-    - Humidity: Outside 60-75% triggers alert
-    - MQ135 (Air Quality): >200 ppm triggers alert
-    - MQ2 (Flammable Gas): >300 ppm triggers alert
-    - MQ7 (Carbon Monoxide): >300 ppm triggers alert
-    - Flame: Detection triggers critical alert
+    Uses editable thresholds from thresholds.json
     """
     # ONLY USE APEX DATA
     readings, _ = get_cached_apex_or_fetch()
@@ -1055,13 +1192,17 @@ def get_alerts():
     latest = readings[0]
     current_data = {**latest, **build_derived_from_reading(latest)}
     
-    # Generate alerts based on thresholds from THRESHOLDS.md
+    # Load current thresholds (editable from frontend)
+    thresholds = load_thresholds()
+    
+    # Generate alerts based on thresholds
     alerts = []
     
     # CRITICAL SAFETY ALERTS (highest priority)
     
-    # Flame detection alert
-    if current_data.get('flame_detected') == 'Yes':
+    # Flame detection alert - check if flame_detected is truthy (boolean, 'Yes', 1, etc.)
+    flame_detected = current_data.get('flame_detected')
+    if flame_detected and str(flame_detected).lower() in ('true', 'yes', '1'):
         alerts.append({
             "title": "🔥 FIRE HAZARD",
             "message": "Flame or strong IR source detected. Inspect all heating equipment immediately!",
@@ -1073,12 +1214,14 @@ def get_alerts():
             "sound": True  # Trigger sound alert
         })
     
-    # Carbon monoxide alert (using real thresholds: 300/750)
+    # Carbon monoxide alert (using thresholds from config)
     mq7_drop = current_data.get('mq7_drop', 0)
-    if mq7_drop > 750:
+    mq7_safe = thresholds.get('mq7', {}).get('safe', 300)
+    mq7_high = thresholds.get('mq7', {}).get('high', 750)
+    if mq7_drop > mq7_high:
         alerts.append({
             "title": "⚠️ CO CRITICAL",
-            "message": f"Carbon monoxide at {mq7_drop:.0f} ppm exceeds safe levels (>750). Ventilate immediately!",
+            "message": f"Carbon monoxide at {mq7_drop:.0f} ppm exceeds safe levels (>{mq7_high}). Ventilate immediately!",
             "timestamp": current_data['timestamp'],
             "sensor_type": "carbon_monoxide",
             "severity": "critical",
@@ -1086,7 +1229,7 @@ def get_alerts():
             "unit": "ppm",
             "sound": True
         })
-    elif mq7_drop > 300:
+    elif mq7_drop > mq7_safe:
         alerts.append({
             "title": "CO Elevated",
             "message": f"Carbon monoxide at {mq7_drop:.0f} ppm. Monitor heating equipment closely.",
@@ -1098,12 +1241,14 @@ def get_alerts():
             "sound": True
         })
     
-    # Flammable gas alert (using real thresholds: 300/750)
+    # Flammable gas alert (using thresholds from config)
     mq2_drop = current_data.get('mq2_drop', 0)
-    if mq2_drop > 750:
+    mq2_safe = thresholds.get('mq2', {}).get('safe', 300)
+    mq2_high = thresholds.get('mq2', {}).get('high', 750)
+    if mq2_drop > mq2_high:
         alerts.append({
             "title": "⚠️ GAS CRITICAL",
-            "message": f"Flammable gas at {mq2_drop:.0f} ppm (>750). Check for leaks immediately!",
+            "message": f"Flammable gas at {mq2_drop:.0f} ppm (>{mq2_high}). Check for leaks immediately!",
             "timestamp": current_data['timestamp'],
             "sensor_type": "flammable_gas",
             "severity": "critical",
@@ -1111,7 +1256,7 @@ def get_alerts():
             "unit": "ppm",
             "sound": True
         })
-    elif mq2_drop > 300:
+    elif mq2_drop > mq2_safe:
         alerts.append({
             "title": "Gas Elevated",
             "message": f"Flammable gas at {mq2_drop:.0f} ppm. Increase ventilation.",
@@ -1125,12 +1270,17 @@ def get_alerts():
     
     # ENVIRONMENTAL ALERTS
     
-    # Temperature alert (optimal: 20-27°C)
+    # Temperature alert (using thresholds from config)
     avg_temp = (current_data['temperature_bmp280'] + current_data['temperature_dht22']) / 2
-    if avg_temp < 18:
+    temp_opt_min = thresholds.get('temperature', {}).get('optimal', {}).get('min', 20)
+    temp_opt_max = thresholds.get('temperature', {}).get('optimal', {}).get('max', 27)
+    temp_acc_min = thresholds.get('temperature', {}).get('acceptable', {}).get('min', 18)
+    temp_acc_max = thresholds.get('temperature', {}).get('acceptable', {}).get('max', 30)
+    
+    if avg_temp < temp_acc_min:
         alerts.append({
             "title": "Temperature Critical Low",
-            "message": f"Temperature at {avg_temp:.1f}°C is critically low (<18°C). Plants may suffer cold damage.",
+            "message": f"Temperature at {avg_temp:.1f}°C is critically low (<{temp_acc_min}°C). Plants may suffer cold damage.",
             "timestamp": current_data['timestamp'],
             "sensor_type": "temperature",
             "severity": "high",
@@ -1138,10 +1288,10 @@ def get_alerts():
             "unit": "°C",
             "sound": True
         })
-    elif avg_temp > 30:
+    elif avg_temp > temp_acc_max:
         alerts.append({
             "title": "Temperature Critical High",
-            "message": f"Temperature at {avg_temp:.1f}°C is dangerously high (>30°C). Risk of heat stress.",
+            "message": f"Temperature at {avg_temp:.1f}°C is dangerously high (>{temp_acc_max}°C). Risk of heat stress.",
             "timestamp": current_data['timestamp'],
             "sensor_type": "temperature",
             "severity": "high",
@@ -1149,10 +1299,10 @@ def get_alerts():
             "unit": "°C",
             "sound": True
         })
-    elif avg_temp < 20 or avg_temp > 27:
+    elif avg_temp < temp_opt_min or avg_temp > temp_opt_max:
         alerts.append({
             "title": "Temperature Outside Optimal",
-            "message": f"Temperature at {avg_temp:.1f}°C is outside optimal range (20-27°C).",
+            "message": f"Temperature at {avg_temp:.1f}°C is outside optimal range ({temp_opt_min}-{temp_opt_max}°C).",
             "timestamp": current_data['timestamp'],
             "sensor_type": "temperature",
             "severity": "medium",
@@ -1161,12 +1311,17 @@ def get_alerts():
             "sound": False
         })
     
-    # Humidity alert (optimal: 45-70%)
+    # Humidity alert (using thresholds from config)
     humidity = current_data.get('humidity', 0)
-    if humidity < 45:
+    hum_opt_min = thresholds.get('humidity', {}).get('optimal', {}).get('min', 45)
+    hum_opt_max = thresholds.get('humidity', {}).get('optimal', {}).get('max', 70)
+    hum_acc_min = thresholds.get('humidity', {}).get('acceptable', {}).get('min', 40)
+    hum_acc_max = thresholds.get('humidity', {}).get('acceptable', {}).get('max', 80)
+    
+    if humidity < hum_acc_min:
         alerts.append({
             "title": "Humidity Critical Low",
-            "message": f"Humidity at {humidity}% is critically low (<45%). Too dry - recommend shading to reduce evaporation.",
+            "message": f"Humidity at {humidity}% is critically low (<{hum_acc_min}%). Too dry - recommend shading to reduce evaporation.",
             "timestamp": current_data['timestamp'],
             "sensor_type": "humidity",
             "severity": "high",
@@ -1174,10 +1329,10 @@ def get_alerts():
             "unit": "%",
             "sound": True
         })
-    elif humidity > 80:
+    elif humidity > hum_acc_max:
         alerts.append({
             "title": "Humidity Critical High",
-            "message": f"Humidity at {humidity}% is dangerously high (>80%). Risk of fungal growth - run all ventilation and open vents!",
+            "message": f"Humidity at {humidity}% is dangerously high (>{hum_acc_max}%). Risk of fungal growth - run all ventilation and open vents!",
             "timestamp": current_data['timestamp'],
             "sensor_type": "humidity",
             "severity": "high",
@@ -1185,10 +1340,10 @@ def get_alerts():
             "unit": "%",
             "sound": True
         })
-    elif humidity < 45 or humidity > 70:
+    elif humidity < hum_opt_min or humidity > hum_opt_max:
         alerts.append({
             "title": "Humidity Outside Optimal",
-            "message": f"Humidity at {humidity}% is outside optimal range (45-70%). Adjust vents/fans.",
+            "message": f"Humidity at {humidity}% is outside optimal range ({hum_opt_min}-{hum_opt_max}%). Adjust vents/fans.",
             "timestamp": current_data['timestamp'],
             "sensor_type": "humidity",
             "severity": "medium",
@@ -1197,12 +1352,15 @@ def get_alerts():
             "sound": False
         })
     
-    # Air quality alert (using real thresholds: 200/500)
+    # Air quality alert (using thresholds from config)
     mq135_drop = current_data.get('mq135_drop', 0)
-    if mq135_drop > 500:
+    mq135_good = thresholds.get('mq135', {}).get('good', 200)
+    mq135_poor = thresholds.get('mq135', {}).get('poor', 500)
+    
+    if mq135_drop > mq135_poor:
         alerts.append({
             "title": "Air Quality Poor",
-            "message": f"Air quality at {mq135_drop:.0f} ppm indicates poor conditions (>500). Increase ventilation.",
+            "message": f"Air quality at {mq135_drop:.0f} ppm indicates poor conditions (>{mq135_poor}). Increase ventilation.",
             "timestamp": current_data['timestamp'],
             "sensor_type": "air_quality",
             "severity": "medium",
@@ -1210,10 +1368,10 @@ def get_alerts():
             "unit": "ppm",
             "sound": True
         })
-    elif mq135_drop > 200:
+    elif mq135_drop > mq135_good:
         alerts.append({
             "title": "Air Quality Moderate",
-            "message": f"Air quality at {mq135_drop:.0f} ppm is outside optimal range (>200).",
+            "message": f"Air quality at {mq135_drop:.0f} ppm is outside optimal range (>{mq135_good}).",
             "timestamp": current_data['timestamp'],
             "sensor_type": "air_quality",
             "severity": "low",

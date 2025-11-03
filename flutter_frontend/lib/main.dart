@@ -361,12 +361,11 @@ void main() async {
   // Initialize notification service
   await NotificationService().initNotification();
   
-  // Get saved IP address from shared preferences, if any
-  final prefs = await SharedPreferences.getInstance();
-  final serverIP = prefs.getString('server_ip');
-  
-  // Initialize API service with the saved IP if available
-  await ApiService.initialize(customServerIP: serverIP);
+  // ALWAYS try to discover the server on app start (dynamic IP support)
+  // This ensures the app works even if the PC's IP changes
+  print('🔍 EcoView starting - discovering server...');
+  await ApiService.initialize(forceRediscover: true);
+  print('✅ API Service initialized');
   
   runApp(const MyApp());
 }

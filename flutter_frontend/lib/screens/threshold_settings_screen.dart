@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/api_service.dart';
 
 class ThresholdSettingsScreen extends StatefulWidget {
   const ThresholdSettingsScreen({super.key});
@@ -35,6 +36,16 @@ class _ThresholdSettingsScreenState extends State<ThresholdSettingsScreen> {
   final TextEditingController _mq7SafeController = TextEditingController();
   final TextEditingController _mq7HighController = TextEditingController();
 
+  // Soil moisture thresholds
+  final TextEditingController _soilOptimalMinController = TextEditingController();
+  final TextEditingController _soilOptimalMaxController = TextEditingController();
+  final TextEditingController _soilAcceptableMinController = TextEditingController();
+  final TextEditingController _soilAcceptableMaxController = TextEditingController();
+
+  // Light level thresholds
+  final TextEditingController _lightMinController = TextEditingController();
+  final TextEditingController _lightMaxController = TextEditingController();
+
   bool _isLoading = true;
 
   @override
@@ -59,19 +70,39 @@ class _ThresholdSettingsScreenState extends State<ThresholdSettingsScreen> {
     _mq2HighController.dispose();
     _mq7SafeController.dispose();
     _mq7HighController.dispose();
+    _soilOptimalMinController.dispose();
+    _soilOptimalMaxController.dispose();
+    _soilAcceptableMinController.dispose();
+    _soilAcceptableMaxController.dispose();
+    _lightMinController.dispose();
+    _lightMaxController.dispose();
     super.dispose();
   }
 
   Future<void> _loadThresholds() async {
-    final prefs = await SharedPreferences.getInstance();
-    final thresholdsJson = prefs.getString('sensor_thresholds');
+    setState(() {
+      _isLoading = true;
+    });
 
+    // Try to load from backend first
+    final backendThresholds = await ApiService.getThresholds();
+    
     Map<String, dynamic> thresholds;
-    if (thresholdsJson != null) {
-      thresholds = jsonDecode(thresholdsJson);
+    if (backendThresholds != null) {
+      thresholds = backendThresholds;
+      debugPrint('Loaded thresholds from backend');
     } else {
-      // Default thresholds from THRESHOLDS.md
-      thresholds = _getDefaultThresholds();
+      // Fallback to local storage
+      final prefs = await SharedPreferences.getInstance();
+      final thresholdsJson = prefs.getString('sensor_thresholds');
+      
+      if (thresholdsJson != null) {
+        thresholds = jsonDecode(thresholdsJson);
+        debugPrint('Loaded thresholds from local storage');
+      } else {
+        thresholds = _getDefaultThresholds();
+        debugPrint('Using default thresholds');
+      }
     }
 
     setState(() {
@@ -99,6 +130,16 @@ class _ThresholdSettingsScreenState extends State<ThresholdSettingsScreen> {
       _mq7SafeController.text = thresholds['mq7']['safe'].toString();
       _mq7HighController.text = thresholds['mq7']['high'].toString();
 
+      // Soil Moisture
+      _soilOptimalMinController.text = thresholds['soil_moisture']['optimal']['min'].toString();
+      _soilOptimalMaxController.text = thresholds['soil_moisture']['optimal']['max'].toString();
+      _soilAcceptableMinController.text = thresholds['soil_moisture']['acceptable']['min'].toString();
+      _soilAcceptableMaxController.text = thresholds['soil_moisture']['acceptable']['max'].toString();
+
+      // Light
+      _lightMinController.text = thresholds['light']['min'].toString();
+      _lightMaxController.text = thresholds['light']['max'].toString();
+
       _isLoading = false;
     });
   }
@@ -106,12 +147,12 @@ class _ThresholdSettingsScreenState extends State<ThresholdSettingsScreen> {
   Map<String, dynamic> _getDefaultThresholds() {
     return {
       'temperature': {
-        'optimal': {'min': 21, 'max': 27},
+        'optimal': {'min': 20, 'max': 27},
         'acceptable': {'min': 18, 'max': 30},
       },
       'humidity': {
-        'optimal': {'min': 60, 'max': 75},
-        'acceptable': {'min': 50, 'max': 85},
+        'optimal': {'min': 45, 'max': 70},
+        'acceptable': {'min': 40, 'max': 80},
       },
       'mq135': {
         'good': 200,
@@ -124,6 +165,14 @@ class _ThresholdSettingsScreenState extends State<ThresholdSettingsScreen> {
       'mq7': {
         'safe': 300,
         'high': 750,
+      },
+      'soil_moisture': {
+        'optimal': {'min': 40, 'max': 60},
+        'acceptable': {'min': 30, 'max': 70},
+      },
+      'light': {
+        'min': 0,
+        'max': 4095,
       },
     };
   }
@@ -163,25 +212,52 @@ class _ThresholdSettingsScreenState extends State<ThresholdSettingsScreen> {
           'safe': int.parse(_mq7SafeController.text),
           'high': int.parse(_mq7HighController.text),
         },
+        'soil_moisture': {
+          'optimal': {
+            'min': int.parse(_soilOptimalMinController.text),
+            'max': int.parse(_soilOptimalMaxController.text),
+          },
+          'acceptable': {
+            'min': int.parse(_soilAcceptableMinController.text),
+            'max': int.parse(_soilAcceptableMaxController.text),
+          },
+        },
+        'light': {
+          'min': int.parse(_lightMinController.text),
+          'max': int.parse(_lightMaxController.text),
+        },
       };
 
+      // Save to backend first
+      final backendSuccess = await ApiService.updateThresholds(thresholds);
+      
+      // Also save to local storage as backup
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('sensor_thresholds', jsonEncode(thresholds));
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Thresholds saved successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (backendSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Thresholds saved successfully to backend!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ Saved locally, but backend sync failed'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
         Navigator.pop(context, true); // Return true to indicate thresholds were updated
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving thresholds: $e'),
+            content: Text('❌ Error saving thresholds: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -225,6 +301,12 @@ class _ThresholdSettingsScreenState extends State<ThresholdSettingsScreen> {
         _mq2HighController.text = defaults['mq2']['high'].toString();
         _mq7SafeController.text = defaults['mq7']['safe'].toString();
         _mq7HighController.text = defaults['mq7']['high'].toString();
+        _soilOptimalMinController.text = defaults['soil_moisture']['optimal']['min'].toString();
+        _soilOptimalMaxController.text = defaults['soil_moisture']['optimal']['max'].toString();
+        _soilAcceptableMinController.text = defaults['soil_moisture']['acceptable']['min'].toString();
+        _soilAcceptableMaxController.text = defaults['soil_moisture']['acceptable']['max'].toString();
+        _lightMinController.text = defaults['light']['min'].toString();
+        _lightMaxController.text = defaults['light']['max'].toString();
       });
     }
   }
@@ -435,6 +517,78 @@ class _ThresholdSettingsScreenState extends State<ThresholdSettingsScreen> {
                       controller: _mq7HighController,
                       label: 'High (> value)',
                       color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          _buildThresholdSection(
+            title: 'Soil Moisture (%)',
+            icon: Icons.water_drop,
+            color: Colors.brown,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _soilOptimalMinController,
+                      label: 'Optimal Min',
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _soilOptimalMaxController,
+                      label: 'Optimal Max',
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _soilAcceptableMinController,
+                      label: 'Acceptable Min',
+                      color: Colors.orange,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _soilAcceptableMaxController,
+                      label: 'Acceptable Max',
+                      color: Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          _buildThresholdSection(
+            title: 'Light Level (ADC 0-4095)',
+            icon: Icons.light_mode,
+            color: Colors.amber,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _lightMinController,
+                      label: 'Min (Dark)',
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _lightMaxController,
+                      label: 'Max (Bright)',
+                      color: Colors.yellow,
                     ),
                   ),
                 ],

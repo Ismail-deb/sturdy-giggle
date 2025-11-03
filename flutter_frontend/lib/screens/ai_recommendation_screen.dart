@@ -57,7 +57,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
           'AI Recommendations',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.amber.withOpacity(0.1),
+        backgroundColor: Colors.amber.withValues(alpha: 0.1),
         elevation: 0,
         actions: [
           IconButton(
@@ -81,8 +81,8 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.amber.withOpacity(0.2),
-                  Colors.amber.withOpacity(0.1),
+                  Colors.amber.withValues(alpha: 0.2),
+                  Colors.amber.withValues(alpha: 0.1),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -90,7 +90,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.amber.withOpacity(0.2),
+                  color: Colors.amber.withValues(alpha: 0.2),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -104,8 +104,8 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.amber.withOpacity(0.3),
-                        Colors.amber.withOpacity(0.2),
+                        Colors.amber.withValues(alpha: 0.3),
+                        Colors.amber.withValues(alpha: 0.2),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -113,7 +113,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.amber.withOpacity(0.4),
+                        color: Colors.amber.withValues(alpha: 0.4),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -142,7 +142,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                       Text(
                         'Powered by advanced sensor monitoring',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                       if (lastUpdated != null) ...[
@@ -200,7 +200,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                     Text(
                       'AI is generating personalized recommendations',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -215,10 +215,10 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.red.withOpacity(0.3),
+                      color: Colors.red.withValues(alpha: 0.3),
                       width: 2,
                     ),
                   ),
@@ -228,7 +228,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.2),
+                          color: Colors.red.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -284,15 +284,15 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.green.withOpacity(0.1),
-                        Colors.green.withOpacity(0.05),
+                        Colors.green.withValues(alpha: 0.1),
+                        Colors.green.withValues(alpha: 0.05),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.green.withOpacity(0.3),
+                      color: Colors.green.withValues(alpha: 0.3),
                       width: 2,
                     ),
                   ),
@@ -302,11 +302,11 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.2),
+                          color: Colors.green.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.green.withOpacity(0.3),
+                              color: Colors.green.withValues(alpha: 0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -339,7 +339,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.15),
+                          color: Colors.green.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -396,39 +396,39 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
     switch (recommendation.type.toLowerCase()) {
       case 'temperature':
         accentColor = Colors.orange[700]!;
-        gradientStart = Colors.orange.withOpacity(0.2);
-        gradientEnd = Colors.orange.withOpacity(0.05);
+        gradientStart = Colors.orange.withValues(alpha: 0.2);
+        gradientEnd = Colors.orange.withValues(alpha: 0.05);
         iconData = Icons.thermostat_rounded;
         break;
       case 'humidity':
         accentColor = Colors.blue[700]!;
-        gradientStart = Colors.blue.withOpacity(0.2);
-        gradientEnd = Colors.blue.withOpacity(0.05);
+        gradientStart = Colors.blue.withValues(alpha: 0.2);
+        gradientEnd = Colors.blue.withValues(alpha: 0.05);
         iconData = Icons.water_drop_rounded;
         break;
       case 'co2':
         accentColor = Colors.green[700]!;
-        gradientStart = Colors.green.withOpacity(0.2);
-        gradientEnd = Colors.green.withOpacity(0.05);
+        gradientStart = Colors.green.withValues(alpha: 0.2);
+        gradientEnd = Colors.green.withValues(alpha: 0.05);
         iconData = Icons.co2_rounded;
         break;
       case 'soil moisture':
       case 'soil':
         accentColor = Colors.brown[700]!;
-        gradientStart = Colors.brown.withOpacity(0.2);
-        gradientEnd = Colors.brown.withOpacity(0.05);
+        gradientStart = Colors.brown.withValues(alpha: 0.2);
+        gradientEnd = Colors.brown.withValues(alpha: 0.05);
         iconData = Icons.water_outlined;
         break;
       case 'light':
         accentColor = Colors.amber[700]!;
-        gradientStart = Colors.amber.withOpacity(0.2);
-        gradientEnd = Colors.amber.withOpacity(0.05);
+        gradientStart = Colors.amber.withValues(alpha: 0.2);
+        gradientEnd = Colors.amber.withValues(alpha: 0.05);
         iconData = Icons.wb_sunny_rounded;
         break;
       default:
         accentColor = Colors.grey[700]!;
-        gradientStart = Colors.grey.withOpacity(0.2);
-        gradientEnd = Colors.grey.withOpacity(0.05);
+        gradientStart = Colors.grey.withValues(alpha: 0.2);
+        gradientEnd = Colors.grey.withValues(alpha: 0.05);
         iconData = Icons.eco_rounded;
     }
     
@@ -443,7 +443,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.2),
+            color: accentColor.withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -453,7 +453,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: accentColor.withOpacity(0.3),
+            color: accentColor.withValues(alpha: 0.3),
             width: 2,
           ),
         ),
@@ -471,8 +471,8 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          accentColor.withOpacity(0.3),
-                          accentColor.withOpacity(0.2),
+                          accentColor.withValues(alpha: 0.3),
+                          accentColor.withValues(alpha: 0.2),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -480,7 +480,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color: accentColor.withOpacity(0.4),
+                          color: accentColor.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -502,7 +502,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: accentColor.withOpacity(0.15),
+                        color: accentColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -527,8 +527,8 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      accentColor.withOpacity(0.3),
-                      accentColor.withOpacity(0.0),
+                      accentColor.withValues(alpha: 0.3),
+                      accentColor.withValues(alpha: 0.0),
                     ],
                   ),
                 ),
@@ -544,7 +544,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                     margin: const EdgeInsets.only(top: 2),
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.2),
+                      color: accentColor.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -577,7 +577,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                     margin: const EdgeInsets.only(top: 4),
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.2),
+                      color: accentColor.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -591,7 +591,7 @@ class _AIRecommendationScreenState extends State<AIRecommendationScreen> {
                     child: Text(
                       recommendation.description,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.8),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                         height: 1.5,
                         fontSize: 14,
                       ),

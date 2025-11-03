@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_html/html.dart' as html;
@@ -8,17 +9,27 @@ import 'package:file_saver/file_saver.dart';
 import 'server_discovery.dart';
 
 class ApiService {
+  static const platform = MethodChannel('com.example.flutter_frontend/downloads');
   static String? _baseUrl;
 
   /// Initialize the API service with the correct base URL
-  static Future<void> initialize({String? customServerIP}) async {
-    if (_baseUrl != null) return; // Already initialized
+  static Future<void> initialize({String? customServerIP, bool forceRediscover = false}) async {
+    // Allow re-discovery if requested or if not initialized yet
+    if (_baseUrl != null && !forceRediscover) {
+      debugPrint('API already initialized with: $_baseUrl');
+      return;
+    }
+
+    debugPrint('🔍 Starting API initialization...');
 
     if (kIsWeb) {
       // Web platform uses the same origin or specified host
       _baseUrl = 'http://127.0.0.1:5000/api';
+      debugPrint('✅ Web platform using: $_baseUrl');
     } else {
       // Try to discover the server first
+      debugPrint('📡 Attempting server discovery...');
+      debugPrint('📡 Attempting server discovery...');
       String? serverAddress = await ServerDiscovery.discoverServer();
       
       if (serverAddress != null) {
@@ -29,7 +40,7 @@ class ApiService {
         } else {
           _baseUrl = 'http://$serverAddress:5000/api';
         }
-        debugPrint('Discovered server at: $_baseUrl');
+        debugPrint('✅ Discovered server at: $_baseUrl');
       } else if (customServerIP != null) {
         // Use custom IP if provided
         // Check if port is already included
@@ -38,11 +49,11 @@ class ApiService {
         } else {
           _baseUrl = 'http://$customServerIP:5000/api';
         }
-        debugPrint('Using custom server IP: $_baseUrl');
+        debugPrint('✅ Using custom server IP: $_baseUrl');
       } else if (Platform.isAndroid) {
-        // Android fallback
-        _baseUrl = 'http://192.168.138.51:5000/api';
-        debugPrint('Using default Android IP: $_baseUrl');
+        // Android fallback - will be replaced by discovered IP
+        _baseUrl = 'http://192.168.18.226:5000/api';
+        debugPrint('⚠️  Using fallback Android IP (discovery failed): $_baseUrl');
       } else if (Platform.isIOS) {
         // iOS fallback
         _baseUrl = 'http://localhost:5000/api';
@@ -247,17 +258,58 @@ class ApiService {
       return savedPath.toString();
     }
 
-    // Mobile: Prefer Downloads if available, else application documents
-    Directory? downloadsDir;
-    try {
-      downloadsDir = await getDownloadsDirectory();
-    } catch (_) {
-      downloadsDir = null;
+    // Mobile: Save to Downloads folder using native Android MediaStore
+    if (Platform.isAndroid || Platform.isIOS) {
+      debugPrint('📱 Saving PDF to Downloads folder...');
+      debugPrint('   File size: ${res.bodyBytes.length} bytes');
+      debugPrint('   Filename: $filename');
+      
+      try {
+        if (Platform.isAndroid) {
+          // Use native Android channel to save to Downloads folder properly
+          debugPrint('   Using MediaStore API for Android 14...');
+          
+          final String result = await platform.invokeMethod('saveToDownloads', {
+            'filename': filename,
+            'bytes': res.bodyBytes,
+          });
+          
+          debugPrint('✅ PDF SAVED TO DOWNLOADS FOLDER!');
+          debugPrint('   📁 File: $filename');
+          debugPrint('   🎉 Open My Files → Downloads or Recent to find it!');
+          debugPrint('   Result: $result');
+          
+          return result;
+        } else {
+          // For iOS - use FileSaver
+          String nameWithoutExt = filename;
+          if (nameWithoutExt.toLowerCase().endsWith('.pdf')) {
+            nameWithoutExt = nameWithoutExt.substring(0, nameWithoutExt.length - 4);
+          }
+          
+          final String savedPath = await FileSaver.instance.saveFile(
+            name: nameWithoutExt,
+            bytes: res.bodyBytes,
+            ext: 'pdf',
+            mimeType: MimeType.pdf,
+          );
+          
+          debugPrint('✅ PDF saved to iOS: $savedPath');
+          return savedPath;
+        }
+      } catch (e, stackTrace) {
+        debugPrint('❌ Save failed: $e');
+        debugPrint('   Stack trace: $stackTrace');
+        rethrow;
+      }
     }
-    final Directory baseDir = downloadsDir ?? await getApplicationDocumentsDirectory();
+    
+    // Fallback for any other platform
+    final Directory baseDir = await getApplicationDocumentsDirectory();
     final String path = '${baseDir.path}/$filename';
     final file = File(path);
     await file.writeAsBytes(res.bodyBytes);
+    debugPrint('✅ PDF saved: $path');
     return path;
   }
   
@@ -321,6 +373,50 @@ class ApiService {
     } catch (e) {
       debugPrint('Error fetching AI analysis for $sensorType: $e');
       rethrow;
+    }
+  }
+
+  /// Get thresholds from backend
+  static Future<Map<String, dynamic>?> getThresholds() async {
+    await _ensureInitialized();
+    
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/thresholds'));
+      
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        return decoded['thresholds'] as Map<String, dynamic>;
+      } else {
+        debugPrint('Failed to load thresholds: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Error fetching thresholds: $e');
+      return null;
+    }
+  }
+
+  /// Update thresholds on backend
+  static Future<bool> updateThresholds(Map<String, dynamic> thresholds) async {
+    await _ensureInitialized();
+    
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/thresholds'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(thresholds),
+      );
+      
+      if (response.statusCode == 200) {
+        debugPrint('Thresholds updated successfully');
+        return true;
+      } else {
+        debugPrint('Failed to update thresholds: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error updating thresholds: $e');
+      return false;
     }
   }
 

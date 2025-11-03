@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
+import 'threshold_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -146,6 +147,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             },
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Threshold Settings Card
+                  Card(
+                    child: InkWell(
+                      onTap: () async {
+                        // Capture context before async gap
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        
+                        // Navigate to threshold settings screen
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ThresholdSettingsScreen(),
+                          ),
+                        );
+                        // If thresholds were updated, show a message
+                        if (!mounted) return;
+                        if (result == true) {
+                          scaffoldMessenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Thresholds updated successfully!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.tune,
+                              color: theme.colorScheme.primary,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Threshold Settings',
+                                    style: theme.textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Configure sensor alert thresholds',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.textTheme.bodySmall?.color,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              color: theme.colorScheme.primary,
+                              size: 20,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

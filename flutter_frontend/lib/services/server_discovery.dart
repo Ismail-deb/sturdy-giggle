@@ -49,9 +49,10 @@ class ServerDiscovery {
       // Set timeout for discovery
       final completer = Completer<String?>();
       
-      // Create a timer to handle discovery timeout
-      Timer? timer = Timer(const Duration(seconds: 15), () {
+      // Create a timer to handle discovery timeout (increased to 20 seconds)
+      Timer? timer = Timer(const Duration(seconds: 20), () {
         if (!completer.isCompleted) {
+          debugPrint('Server discovery timed out after 20 seconds');
           completer.complete(null);
           socket.close();
         }
