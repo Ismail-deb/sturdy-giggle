@@ -282,6 +282,84 @@ Navigation: [🔔] [📊] [📄] [⚙️]
 
 **System Status:** All sensors operational and reporting ✅
 
+### Understanding the 10 Dashboard Cards
+
+Each card on the dashboard provides real-time monitoring of a specific greenhouse parameter. Here's what each one shows:
+
+#### 1. 🌡️ Temperature Card
+- **What it shows:** Average temperature from BMP280 and DHT22 sensors
+- **Example reading:** 28.9°C
+- **Optimal range:** 20-27°C (ideal for most greenhouse plants)
+- **Status colors:** ✅ Green (20-27°C), ⚠️ Yellow (18-20 or 27-30°C), 🔴 Red (<18 or >30°C)
+- **Action needed:** Adjust ventilation, heating, or cooling if yellow/red
+
+#### 2. 💧 Humidity Card
+- **What it shows:** Relative humidity from DHT22 sensor  
+- **Example reading:** 43.5%
+- **Optimal range:** 45-70% (prevents disease while avoiding drought stress)
+- **Status colors:** ✅ Green (45-70%), ⚠️ Yellow (40-45 or 70-80%), 🔴 Red (<40 or >80%)
+- **Action needed:** Adjust ventilation, use humidifier/dehumidifier
+
+#### 3. 🌱 Soil Moisture Card
+- **What it shows:** Soil moisture percentage from capacitive sensor
+- **Example reading:** 36%
+- **Optimal range:** 40-60% (balanced water and oxygen for roots)
+- **Status colors:** ✅ Green (40-60%), ⚠️ Yellow (30-40 or 60-70%), 🔴 Red (<30 or >70%)
+- **Action needed:** Adjust irrigation or improve drainage
+
+#### 4. ☀️ Light Intensity Card
+- **What it shows:** Light sensor reading (lower number = brighter)
+- **Example reading:** 497
+- **Thresholds:** 0-250 Bright, 251-650 Moderate, 651-950 Dim, 951-1250 Dark Indoor, >1250 Dark Night
+- **Status colors:** ✅ Green (0-650), ⚠️ Yellow (651-1250), 🔴 Red (>1250)
+- **Action needed:** Add grow lights or remove shading if yellow/red
+
+#### 5. 🌫️ Air Quality (CO₂) Card
+- **What it shows:** Calculated CO₂ level from MQ135 sensor
+- **Example reading:** 437 ppm
+- **Optimal ranges:** 300-800 ppm Good, 800-1500 ppm Acceptable, >1500 ppm High
+- **Status colors:** ✅ Green (300-800), ⚠️ Yellow (800-1500), 🔴 Red (<300 or >1500)
+- **Action needed:** Adjust ventilation or CO₂ supplementation
+
+#### 6. 🔥 Flammable Gas (MQ2) Card
+- **What it shows:** Flammable gas/smoke from MQ2 sensor
+- **Example reading:** 334 ppm
+- **Safety thresholds:** ≤300 Safe, 301-750 Elevated, >750 High
+- **Status colors:** ✅ Green (≤300), ⚠️ Yellow (301-750), 🔴 Red (>750)
+- **Action needed:** Inspect heating equipment, check for gas leaks
+
+#### 7. 🌬️ Carbon Monoxide (MQ7) Card
+- **What it shows:** CO detection from MQ7 sensor
+- **Example reading:** 54 ppm
+- **Safety thresholds:** ≤300 Safe, 301-750 Elevated, >750 Dangerous
+- **Status colors:** ✅ Green (≤300), ⚠️ Yellow (301-750), 🔴 Red (>750)
+- **Action needed:** Check combustion equipment, ventilate immediately if red
+
+#### 8. 📍 Pressure Card
+- **What it shows:** Barometric pressure from BMP280 sensor
+- **Example reading:** 1010.68 hPa
+- **Normal range:** 990-1030 hPa
+- **Status colors:** ✅ Green (990-1030), ⚠️ Yellow (980-990 or 1030-1040), 🔴 Red (<980 or >1040)
+- **Action needed:** Monitor weather changes, adjust environmental controls
+
+#### 9. ☁️ CO₂ Level Card
+- **What it shows:** Alternative CO₂ view for quick reference
+- **Same as Air Quality card - provides duplicate access to CO₂ monitoring**
+- **Purpose:** Quick access without navigating to air quality details
+
+#### 10. ⬆️ Altitude Card
+- **What it shows:** Elevation from BMP280 sensor
+- **Example reading:** 0.21 m
+- **Purpose:** Reference measurement (greenhouse location elevation)
+- **Note:** Stable value - doesn't require action unless erratic
+
+**Quick Reference:**
+- Cards 1-7: Daily plant health monitoring (check these daily)
+- Cards 8-10: Environmental references (stable values)
+- 🔴 Red = Immediate action needed
+- ⚠️ Yellow = Plan adjustment soon  
+- ✅ Green = All good!
+
 ### Real Data Update Cycle
 
 - **APEX polling interval:** Every 3 seconds
@@ -344,15 +422,17 @@ System operational ✅ = All sensors responding correctly
 **What you see:**
 - Header: "🌱 EcoView - Greenhouse Monitor"
 - Status bar: "✅ ALL SYSTEMS NORMAL"
-- 6 cards in grid (2 columns × 3 rows):
-  - Top: 🌡️ Temperature, 💧 Humidity
-  - Middle: 🌱 Soil, ☀️ Light
-  - Bottom: 🌫️ CO₂, 🌫️ Air Quality
+- 10 cards in grid (2 columns × 5 rows):
+  - Row 1: 🌡️ Temperature, 💧 Humidity
+  - Row 2: 🌱 Soil Moisture, ☀️ Light
+  - Row 3: 🌫️ Air Quality (CO₂), 🔥 Flammable Gas
+  - Row 4: �️ Carbon Monoxide, 📍 Pressure
+  - Row 5: ☁️ CO₂ Level, ⬆️ Altitude
 - Each card shows icon, label, value, ✅ status color
 - Timestamp: "✅ All readings fresh (3s ago)"
 
 **How to interact with this screen:**
-1. **Quick check:** Glance at all 6 sensors at once
+1. **Quick check:** Glance at all 10 sensors at once
 2. **See trends:** Tap any card to view 24-hour graph
 3. **Force refresh:** Tap ↻ button (if needed)
 4. **Check alerts:** Tap 🔔 icon if you see yellow/red cards
@@ -904,7 +984,7 @@ Generated: Nov 2, 2024 3:45 PM
 - Report date: Nov 2, 2024
 - Time period: 24 hours
 - File size: 2.4 MB
-- Contents: All 6 sensors, hourly readings, graphs, AI notes
+- Contents: All 10 sensors, hourly readings, graphs, AI notes
 - Used for: Documented stable conditions, shared with team
 
 ---
@@ -1128,7 +1208,7 @@ What we did:
 **Morning Check (2 minutes):**
 1. Open app
 2. Dashboard appears instantly
-3. Glance at all 6 sensors - check for yellow/red
+3. Glance at all 10 sensors - check for yellow/red
 4. Everything green ✅ = Good to go
 
 **If Alert Appears (5 minutes):**
