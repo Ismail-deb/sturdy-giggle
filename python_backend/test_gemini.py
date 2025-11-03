@@ -3,6 +3,10 @@ Test script to verify Gemini API is working with real sensor data
 """
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add parent directory to path to import gemini_service
 sys.path.insert(0, os.path.dirname(__file__))

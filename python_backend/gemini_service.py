@@ -68,8 +68,8 @@ def get_gemini_analysis(sensor_type, current_value, unit, status, historical_dat
         Format the response as plain text without any markdown formatting.
         """
         
-        # Call the Gemini API (using latest stable model)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        # Call the Gemini API (using gemini-2.5-flash model)
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
         response = model.generate_content(prompt)
         
         # Return the response text
