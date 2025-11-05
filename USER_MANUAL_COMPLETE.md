@@ -304,8 +304,11 @@ flutter install --release
 
 ## Application Interface
 
-### [SCREENSHOT PLACEHOLDER 1: Dashboard Screen]
-*Insert screenshot of main dashboard here*
+### Dashboard Screen
+
+![EcoView Dashboard](docs/screenshots/Dashboard%201.png)
+
+*Figure 1: EcoView Dashboard - Main monitoring interface showing real-time sensor readings*
 
 ### Dashboard Overview
 
@@ -358,8 +361,11 @@ Each card displays:
    - ↓ = Decreasing
    - → = Stable
 
-### [SCREENSHOT PLACEHOLDER 2: Sensor Analysis Screen]
-*Insert screenshot of sensor details and trends here*
+### Sensor Analysis Screen
+
+![Sensor Analysis - Temperature Card](docs/screenshots/temperature%20card%20analysis.png)
+
+*Figure 2: Detailed sensor analysis screen showing temperature trends and AI insights*
 
 ### Sensor Analysis Screen
 
@@ -397,10 +403,11 @@ Range:      9.3°C
 - Contextual recommendations
 - Fallback guidance if AI unavailable
 
-### [SCREENSHOT PLACEHOLDER 3: AI Recommendations Screen]
-*Insert screenshot of recommendations here*
-
 ### AI Recommendations
+
+![AI Recommendations Dashboard](docs/screenshots/dashboard%202.png)
+
+*Figure 6: Dashboard with AI recommendations button and real-time status indicators*
 
 Access from Dashboard or tap "🤖 AI Recommendations" button.
 
@@ -451,8 +458,21 @@ Access from Dashboard or tap "🤖 AI Recommendations" button.
 └────────────────────────────────────────┘
 ```
 
-### [SCREENSHOT PLACEHOLDER 4: Settings Screen]
-*Insert screenshot of settings configuration here*
+### Sensor Information Guide
+
+![Sensor Guide - Page 1](docs/screenshots/sensor%20guide.png)
+
+*Figure 3: Sensor Information Guide - Educational resource explaining each sensor type*
+
+![Sensor Guide - Page 2](docs/screenshots/sensor%20guide%202.png)
+
+*Figure 4: Sensor Information Guide - Continued overview with optimal ranges and tips*
+
+### Settings Screen
+
+![Settings Configuration](docs/screenshots/settings%20page.png)
+
+*Figure 5: Settings screen for backend connection and application configuration*
 
 ### Settings Screen
 
@@ -474,6 +494,12 @@ Configure application behavior and backend connection:
 - Units: Celsius/Fahrenheit toggle
 - Gas units: PPM display format
 - Data points per chart: 50-500 points
+
+**Threshold Configuration**
+
+![Configure Thresholds](docs/screenshots/configure%20thresholds.png)
+
+*Figure 7: Threshold configuration screen for customizing sensor alert ranges*
 
 #### Connection Status Display
 ```
@@ -502,9 +528,6 @@ APEX Connection: ✓ Active
 - 🟢 **Green**: Within optimal operating parameters
 - 🟡 **Yellow**: Outside optimal but acceptable
 - 🔴 **Red**: Critical - immediate attention required
-
-### 2. [SCREENSHOT PLACEHOLDER 5: Alert Notification]
-*Insert screenshot of alert/notification example*
 
 ### Alert System
 
@@ -550,6 +573,10 @@ View data across multiple time periods to identify patterns:
 2. Wait for generation (10-30 seconds)
 3. Choose: Open, Share, or Save
 4. File saved to: `Downloads/greenhouse_report_YYYY-MM-DD.pdf`
+
+![PDF Report Sample](docs/screenshots/First%20page%20of%20report.png)
+
+*Figure 8: Sample PDF report - First page showing comprehensive greenhouse monitoring data*
 
 #### Report Contents
 
