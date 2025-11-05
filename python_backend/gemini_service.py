@@ -68,8 +68,8 @@ def get_gemini_analysis(sensor_type, current_value, unit, status, historical_dat
         Format the response as plain text without any markdown formatting.
         """
         
-        # Call the Gemini API (using latest stable model)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        # Call the Gemini API (using gemini-2.5-flash model)
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
         response = model.generate_content(prompt)
         
         # Return the response text
@@ -126,7 +126,17 @@ def _get_fallback_analysis(sensor_type, current_value, unit, status):
             return f"CO₂ concentration of {current_value}{unit} exceeds optimal range. While not harmful to plants, it provides diminishing returns and may indicate inadequate ventilation. Check air exchange and adjust CO₂ supplementation if needed."
     
     elif sensor_type == 'light':
-        return f"Light intensity reading of {current_value}{unit} indicates {'low' if float(current_value) < 4 else 'adequate' if float(current_value) < 8 else 'high'} light conditions. {'Consider supplemental lighting to improve plant growth' if float(current_value) < 4 else 'This level supports healthy photosynthesis for most plants' if float(current_value) < 8 else 'Monitor for heat stress if sustained for long periods'}."
+        # Raw light sensor values: 0-250 bright, 251-650 moderate, 651-950 dim, 951-1250 dark indoor, >1250 dark night
+        if float(current_value) <= 250:
+            return f"Light intensity reading of {current_value}{unit} indicates bright light conditions (full sunlight or strong artificial light). This is excellent for photosynthesis and plant growth. Monitor plants for any signs of light stress in sensitive species."
+        elif float(current_value) <= 650:
+            return f"Light intensity at {current_value}{unit} indicates moderate light conditions, suitable for most greenhouse plants. This level resembles cloudy day or shaded greenhouse conditions and supports healthy photosynthesis for the majority of crops."
+        elif float(current_value) <= 950:
+            return f"Light reading of {current_value}{unit} shows dim lighting conditions similar to early morning or evening. Most plants will experience reduced photosynthesis rates. Consider supplemental lighting if this persists during growing hours."
+        elif float(current_value) <= 1250:
+            return f"Light intensity at {current_value}{unit} indicates dark indoor conditions with minimal light. Plants are not receiving adequate light for photosynthesis. Supplemental grow lights are strongly recommended to maintain plant health."
+        else:
+            return f"Light reading of {current_value}{unit} indicates complete darkness or nighttime conditions. No photosynthesis is occurring. This is normal during night hours, but if occurring during the day, check for sensor issues or greenhouse shading problems."
     
     elif sensor_type == 'soil moisture':
         if status.lower() == 'optimal':

@@ -203,18 +203,21 @@ def _get_combined_air_quality_status(mq135_ppm, co2_ppm):
 
 def _get_light_status(value):
     """Get status description for light reading
-    NEW THRESHOLDS based on light sensor calibration:
-    • 0-399 = Full sunlight / strong artificial light
-    • 400-799 = Cloudy day / shade in greenhouse
-    • 800-1399 = Dim lighting, early morning/evening
-    • 1400+ = No light, closed room, or night
+    Raw light sensor thresholds:
+    • 0-250 = Bright (Full sunlight / strong artificial light)
+    • 251-650 = Moderate (Cloudy day / shade in greenhouse)
+    • 651-950 = Dim (Dim lighting, early morning/evening)
+    • 951-1250 = Dark Indoor
+    • >1250 = Dark Night (No light, closed room, or night)
     """
-    if value <= 399:
+    if value <= 250:
         return "Bright"
-    elif value <= 799:
+    elif value <= 650:
         return "Moderate"
-    elif value <= 1399:
+    elif value <= 950:
         return "Dim Indoor"
+    elif value <= 1250:
+        return "Dark Indoor"
     else:
         return "Dark Night"
 
@@ -883,6 +886,16 @@ def get_sensor_analysis(sensor_type):
                     if field in reading and reading[field] is not None:
                         return float(reading[field])
                 return None
+            elif key == 'co2_level':
+                # CO2 level is calculated from MQ135 drop
+                derived = build_derived_from_reading(reading)
+                if 'co2_level' in derived and derived['co2_level'] is not None:
+                    return float(derived['co2_level'])
+                # Fallback: calculate from mq135_drop if available
+                mq135_drop = reading.get('mq135_drop')
+                if mq135_drop is not None:
+                    return 400 + abs(float(mq135_drop)) * 1.2
+                return None
             elif key in ('mq135_drop', 'mq2_drop', 'mq7_drop'):
                 # Gas sensor drops - use ABSOLUTE VALUE (voltage drops are negative, convert to positive PPM)
                 if key in reading and reading[key] is not None:
@@ -931,13 +944,19 @@ def get_sensor_analysis(sensor_type):
         unit = '%'
         status_fn = _get_humidity_status
     elif 'co2' in st or 'co₂' in st or 'air quality' in st.lower() or 'mq135' in st or 'air_quality' in st:
-        # Check if they want the drop value or the co2_level estimate
-        if 'mq135' in st or 'air quality' in st.lower() or 'air_quality' in st:
+        # For air_quality sensor type, use CO2 level (calculated from MQ135)
+        # For mq135 sensor type specifically, use the raw MQ135 drop value
+        if 'air_quality' in st or 'air quality' in st.lower():
+            key = 'co2_level'  # Calculated CO2 from MQ135
+            unit = 'ppm'
+            status_fn = _get_co2_status
+        elif 'mq135' in st:
             key = 'mq135_drop'  # Direct from APEX (already in PPM)
             unit = 'ppm'
             # MQ135 thresholds: >500 = poor, >200 = degraded, ≤200 = good
             status_fn = lambda v: "Good" if v <= 200 else ("Poor" if v > 500 else "Moderate")
         else:
+            # Default to CO2 level for 'co2' or 'co₂' in sensor type
             key = 'co2_level'
             unit = 'ppm'
             status_fn = _get_co2_status
@@ -1089,9 +1108,16 @@ def get_sensor_ai_only(sensor_type):
             unit = 'lux'
             status = _get_light_status(current_value)
         elif 'co2' in st or 'air' in st or 'mq135' in st or 'air_quality' in st:
-            current_value = sensor_data.get('mq135_drop', 0)
+            # For CO2/air quality cards, show the CO2 level (calculated from MQ135)
+            current_value = sensor_data.get('co2_level', sensor_data.get('mq135_drop', 0))
             unit = 'ppm'
-            status = "Good" if current_value <= 200 else ("Poor" if current_value > 500 else "Moderate")
+            # Determine status based on whether we're using CO2 level or raw MQ135
+            if sensor_data.get('co2_level', 0) > 0:
+                # Using CO2 level
+                status = _get_co2_status(current_value)
+            else:
+                # Fallback to MQ135 drop status
+                status = "Good" if current_value <= 200 else ("Poor" if current_value > 500 else "Moderate")
         elif 'mq2' in st or 'smoke' in st or 'flammable' in st:
             current_value = sensor_data.get('mq2_drop', 0)
             unit = 'ppm'
@@ -1123,27 +1149,32 @@ def get_sensor_ai_only(sensor_type):
         # Get last 10 readings for trend analysis
         historical_values = []
         for r in readings[:10]:
+            # Build derived data for each reading to get co2_level
+            r_derived = build_derived_from_reading(r)
+            r_data = {**r, **r_derived}
+            
             if 'temp' in st:
-                val = r.get('temperature', 0)
+                val = r_data.get('temperature', 0)
             elif 'humid' in st:
-                val = r.get('humidity', 0)
+                val = r_data.get('humidity', 0)
             elif 'light' in st:
-                val = r.get('light', 0)
+                val = r_data.get('light', 0)
             elif 'co2' in st or 'air' in st or 'mq135' in st or 'air_quality' in st:
-                val = r.get('mq135_drop', 0)
+                # Use CO2 level if available, otherwise fall back to MQ135 drop
+                val = r_data.get('co2_level', r_data.get('mq135_drop', 0))
             elif 'mq2' in st or 'smoke' in st or 'flammable' in st:
-                val = r.get('mq2_drop', 0)
+                val = r_data.get('mq2_drop', 0)
             elif 'mq7' in st or ('co' in st and 'co2' not in st) or 'carbon monoxide' in st:
-                val = r.get('mq7_drop', 0)
+                val = r_data.get('mq7_drop', 0)
             elif 'soil' in st or 'moisture' in st:
                 # Check for various soil moisture field names from merged data
-                val = (r.get('sloi_moisture') or 
-                      r.get('moisture') or 
-                      r.get('soil_moisture') or 0)
+                val = (r_data.get('sloi_moisture') or 
+                      r_data.get('moisture') or 
+                      r_data.get('soil_moisture') or 0)
             elif 'altitude' in st:
-                val = r.get('altitude', 0)
+                val = r_data.get('altitude', 0)
             elif 'pressure' in st:
-                val = r.get('pressure', 0)
+                val = r_data.get('pressure', 0)
             else:
                 val = 0
             historical_values.append(val)

@@ -17,18 +17,18 @@ The `USER_MANUAL_QUICK.md` includes **24 image placeholders** with detailed desc
   - App header: "🌱 EcoView - Greenhouse Monitor"
   - Status bar: "✅ ALL SYSTEMS NORMAL"
   - 10 sensor cards in responsive grid layout:
-    - 🌡️ Temperature: 28.9°C ✅
-    - 💧 Humidity: 43.5% ✅
-    - 🌱 Soil Moisture: 36% ✅
-    - ☀️ Light: 1133 lux ✅
-    - 🌫️ Air Quality (MQ135): 0 ppm ✅
-    - 🔥 Flammable Gas (MQ2): 0 ppm ✅
-    - 🌬️ Carbon Monoxide (MQ7): 0 ppm ✅
-    - 📍 Pressure: 1005 hPa ✅
-    - ☁️ CO₂: 400 ppm ✅
-    - ⬆️ Altitude: 5.8 m ✅
+    - 🌡️ Temperature: 24.5°C ✅
+    - 💧 Humidity: 58% ✅
+    - 🌱 Soil Moisture: 52% ✅
+    - ☀️ Light: 497 (Moderate) ✅
+    - 🌫️ Air Quality (CO₂): 437 ppm ✅
+    - 🔥 Flammable Gas (MQ2): 334 ppm ⚠️
+    - 🌬️ Carbon Monoxide (MQ7): 54 ppm ✅
+    - 📍 Pressure: 1010.68 hPa ✅
+    - ☁️ CO₂ Level: 700 ppm ✅
+    - ⬆️ Altitude: 0.21 m ✅
   - Bottom navigation: 🔔 📊 📄 ⚙️
-- **Instruction:** "Tap any card to see detailed view and 24-hour graph"
+- **Instruction:** "Tap any card to see detailed view, 24-hour graph, and AI analysis"
 
 #### 2. Dashboard with Yellow Alert
 **File:** `docs/screenshots/02_dashboard_with_alert.png`
@@ -108,90 +108,121 @@ The `USER_MANUAL_QUICK.md` includes **24 image placeholders** with detailed desc
 **File:** `docs/screenshots/08_sensor_detail_light.png`
 - **Location:** After tapping Light card
 - **Content to capture:**
-  - Display: "4200 lux" in green
-  - Visual light bar (strong light)
-  - Status: "Perfect for growth ✅"
-  - Range: 2000-5000 lux optimal
-  - Daytime graph (peaks at midday, low at night)
-  - Peak info: "Peak light: 2:45 PM (4500 lux)"
-  - AI note about photosynthesis
+  - Display: "497" (raw sensor value) showing "Moderate" status in green
+  - Visual light bar indicator
+  - Status: "Moderate - Good for growth ✅"
+  - Threshold ranges (inverted scale - lower = brighter):
+    - 0-250: Bright ☀️
+    - 251-650: Moderate 🌤️
+    - 651-950: Dim Indoor 🏠
+    - 951-1250: Dark Indoor 🌑
+    - >1250: Dark Night 🌃
+  - 24-hour graph showing daily cycle (low during day, high at night)
+  - Stats: "Today's Min: 112 (Bright) | Max: 1450 (Dark Night) | Current: 497"
+  - AI analysis: "Light level adequate for photosynthesis. Sensor uses inverted scale where lower numbers indicate brighter conditions."
 
 #### 9. CO₂ Level Detail Screen
 **File:** `docs/screenshots/09_sensor_detail_co2.png`
-- **Location:** After tapping CO₂ card
+- **Location:** After tapping CO₂ card (Air Quality card)
 - **Content to capture:**
-  - Display: "820 ppm" in green
-  - Status: "Greenhouse level ✅"
-  - Range: 800-1200 ppm safe
-  - Comparison: "Outdoor: 400 ppm | Your greenhouse: 820 ppm (2x)"
-  - Stable trend line
-  - AI note: "Enriched CO₂ for optimal photosynthesis"
+  - Display: "700 ppm" in green (calculated from MQ135 sensor)
+  - Calculation shown: "CO₂ = 400 + (MQ135 × 1.2)"
+  - Status: "Good air quality ✅"
+  - Range thresholds:
+    - 300-800 ppm: Good (green) 🟢
+    - 800-1500 ppm: Acceptable (yellow) 🟡
+    - <300 or >1500 ppm: High (red) 🔴
+  - Comparison: "Outdoor baseline: 400 ppm | Your greenhouse: 700 ppm"
+  - 24-hour trend line showing variations
+  - Stats: "Min: 520 ppm | Max: 890 ppm | Avg: 685 ppm"
+  - AI analysis: "CO₂ level within optimal range for photosynthesis. Calculated from MQ135 air quality sensor readings. Good ventilation balance."
 
 #### 10. Air Quality Detail Screen
 **File:** `docs/screenshots/10_sensor_detail_air_quality.png`
-- **Location:** After tapping Air Quality card
+- **Location:** After tapping Air Quality card (same as CO₂ card - shows co2_level)
 - **Content to capture:**
-  - Display: "0 ppm" in green
-  - Status: "Excellent - Clean air ✅"
-  - Quality indicator showing low particulates
-  - Range: <200 ppm (good)
-  - Flat/stable trend line (MQ135 sensor)
-  - AI note: "Air circulation excellent"
+  - Display: "437 ppm" in green (calculated CO₂ level)
+  - Status: "Good - Clean air ✅"
+  - Quality indicator with color-coded zones:
+    - 🟢 Green: 300-800 ppm (Good)
+    - 🟡 Yellow: 800-1500 ppm (Acceptable)
+    - 🔴 Red: <300 or >1500 ppm (Action needed)
+  - Calculation note: "Based on MQ135 sensor: CO₂ = 400 + (sensor_value × 1.2)"
+  - 24-hour trend line (stable within green zone)
+  - Stats: "Min: 412 ppm | Max: 623 ppm | Avg: 485 ppm"
+  - AI analysis: "Air quality excellent with CO₂ levels supporting healthy plant growth. Sensor calibrated to greenhouse baseline of 400 ppm. Ventilation working effectively."
 
 #### 11. Flammable Gas (MQ2) Detail Screen
 **File:** `docs/screenshots/11_sensor_detail_flammable_gas.png`
 - **Location:** After tapping Flammable Gas card
 - **Content to capture:**
-  - Display: "0 ppm" in green
-  - Status: "Safe - No flammable gas detected ✅"
-  - Safety indicator showing safe zone
-  - Range: <300 ppm (safe), 300-750 ppm (yellow), >750 ppm (critical red)
-  - Flat/stable trend line (MQ2 sensor)
-  - AI note: "All flammable gas sensors reading normal"
+  - Display: "334 ppm" in yellow (slightly elevated)
+  - Status: "Elevated - Monitor ⚠️"
+  - Safety indicator with color-coded zones:
+    - 🟢 Green: ≤300 ppm (Safe)
+    - 🟡 Yellow: 301-750 ppm (Elevated - Monitor)
+    - 🔴 Red: >750 ppm (High - Action Required)
+  - 24-hour trend line (MQ2 sensor readings)
+  - Stats: "Min: 285 ppm | Max: 412 ppm | Current: 334 ppm"
+  - AI analysis: "Flammable gas reading slightly above safe threshold. Check heating equipment and ensure proper ventilation. Monitor for increases. Normal for greenhouses with gas heaters."
 
 #### 12. Carbon Monoxide (MQ7) Detail Screen
 **File:** `docs/screenshots/12_sensor_detail_carbon_monoxide.png`
 - **Location:** After tapping Carbon Monoxide card
 - **Content to capture:**
-  - Display: "0 ppm" in green
-  - Status: "Safe - No CO detected ✅"
-  - Safety indicator showing safe zone
-  - Range: <300 ppm (safe), 300-750 ppm (yellow), >750 ppm (critical red)
-  - Flat/stable trend line (MQ7 sensor)
-  - AI note: "Carbon monoxide levels normal and safe"
+  - Display: "54 ppm" in green
+  - Status: "Safe - No CO hazard ✅"
+  - Safety indicator with color-coded zones:
+    - 🟢 Green: ≤300 ppm (Safe)
+    - 🟡 Yellow: 301-750 ppm (Elevated - Check equipment)
+    - 🔴 Red: >750 ppm (Dangerous - Ventilate immediately)
+  - 24-hour trend line (MQ7 sensor readings)
+  - Stats: "Min: 42 ppm | Max: 68 ppm | Avg: 54 ppm"
+  - AI analysis: "Carbon monoxide levels well within safe range. All combustion equipment functioning properly. Continue monitoring if using gas heaters or equipment."
 
 #### 13. Pressure Detail Screen
 **File:** `docs/screenshots/13_sensor_detail_pressure.png`
 - **Location:** After tapping Pressure card
 - **Content to capture:**
-  - Display: "1005 hPa" in green
+  - Display: "1010.68 hPa" in green
   - Status: "Normal atmospheric pressure ✅"
-  - Pressure reference indicator (normal range ~1010-1020 hPa)
-  - 24-hour pressure trend line
-  - Stats: "Min: 1002 hPa | Max: 1008 hPa"
-  - AI note: "Stable pressure conditions"
+  - Pressure indicator with color-coded zones:
+    - 🟢 Green: 990-1030 hPa (Normal)
+    - 🟡 Yellow: 980-990 or 1030-1040 hPa (Unusual)
+    - 🔴 Red: <980 or >1040 hPa (Extreme weather)
+  - 24-hour pressure trend line (shows weather patterns)
+  - Stats: "Min: 1008.2 hPa | Max: 1012.5 hPa | Avg: 1010.3 hPa"
+  - Weather prediction: "Stable pressure - fair weather expected"
+  - AI analysis: "Barometric pressure normal for this elevation. Stable conditions indicate continued fair weather. Monitor for rapid changes which may signal incoming weather systems."
 
 #### 14. CO₂ Level Detail Screen
 **File:** `docs/screenshots/14_sensor_detail_co2.png`
-- **Location:** After tapping CO₂ card
+- **Location:** After tapping CO₂ Level card (duplicate of Air Quality card)
 - **Content to capture:**
-  - Display: "400 ppm" in green
+  - Display: "700 ppm" in green (calculated value)
   - Status: "Optimal greenhouse level ✅"
-  - Range: 800-1200 ppm enriched (greenhouse), 400 ppm (outdoor reference)
-  - Comparison: "Outdoor: 400 ppm | Your greenhouse: 400 ppm"
-  - Trend line showing stability
-  - AI note: "CO₂ level supports photosynthesis"
+  - Calculation formula shown: "CO₂ = 400 + (MQ135_drop × 1.2)"
+  - Range thresholds:
+    - 300-800 ppm: Good (supports photosynthesis) 🟢
+    - 800-1500 ppm: Acceptable 🟡
+    - <300 or >1500 ppm: Action needed 🔴
+  - Comparison: "Outdoor baseline: 400 ppm | Your greenhouse: 700 ppm"
+  - 24-hour trend line showing daily fluctuations
+  - Stats: "Min: 520 ppm | Max: 890 ppm | Avg: 685 ppm"
+  - AI analysis: "CO₂ enrichment excellent for plant growth. Level stays within optimal photosynthesis range. Good balance between ventilation and CO₂ retention."
 
 #### 15. Altitude Detail Screen
 **File:** `docs/screenshots/15_sensor_detail_altitude.png`
 - **Location:** After tapping Altitude card
 - **Content to capture:**
-  - Display: "5.8 m" in green
+  - Display: "0.21 m" in green
   - Status: "Reference elevation ✅"
-  - Description: "Altitude used for pressure calculations"
-  - Static reference information (does not change frequently)
-  - Pressure and altitude relationship explanation
-  - AI note: "Altitude locked for accurate readings"
+  - Description: "Altitude calculated from BMP280 pressure sensor for accurate atmospheric readings"
+  - Elevation context: "Sea level reference: 0 m | Your greenhouse: 0.21 m"
+  - Static reference information (stable value - doesn't change frequently)
+  - Relationship explanation: "Pressure and altitude are inversely related - used to calibrate pressure readings"
+  - Stats: "Stable: 0.18-0.24 m (normal sensor variation)"
+  - AI analysis: "Altitude locked at ground level for accurate barometric pressure calculations. Minor variations are normal sensor fluctuations."
 
 ---
 
@@ -359,10 +390,19 @@ The `USER_MANUAL_QUICK.md` includes **24 image placeholders** with detailed desc
 4. Save as PNG with date/number
 
 ### For Sensor Detail Screens
-1. Tap each sensor card (Temperature, Humidity, Soil, Light, CO₂, Air Quality)
-2. Screen shows detailed view with graph
-3. Capture full screen
-4. Name by sensor type
+1. Tap each sensor card (Temperature, Humidity, Soil, Light, CO₂, Air Quality, Flammable Gas, Carbon Monoxide, Pressure, Altitude)
+2. Screen shows detailed view with 24-hour graph and current reading
+3. **AI Analysis:** Each card includes Gemini AI-powered analysis
+   - Real-time interpretation of sensor values
+   - Contextual recommendations based on thresholds
+   - Trend analysis and predictions
+4. **Important Notes:**
+   - Light sensor uses inverted scale (0-250 = Bright, >1250 = Dark Night)
+   - CO₂ is calculated: `CO₂ = 400 + (MQ135_drop × 1.2)`
+   - All values are real sensor data from Oracle APEX backend
+   - Gemini API key must be configured in `.env` for AI analysis
+5. Capture full screen showing value, status, graph, and AI insights
+6. Name by sensor type
 
 ### For Alert Screens
 1. Modify APEX polling data to simulate:
@@ -405,17 +445,22 @@ docs/
 │   ├── 08_sensor_detail_light.png
 │   ├── 09_sensor_detail_co2.png
 │   ├── 10_sensor_detail_air_quality.png
-│   ├── 11_dashboard_yellow_alert.png
-│   ├── 12_alerts_panel_full.png
-│   ├── 13_critical_alert.png
-│   ├── 14_multiple_alerts.png
-│   ├── 15_report_generating.png
-│   ├── 16_report_ready.png
-│   ├── 17_report_preview.pdf (or .png)
-│   ├── 18_settings_main.png
-│   ├── 19_settings_manual_ip.png
-│   ├── 20_settings_notifications.png
-│   └── 21_settings_about.png
+│   ├── 11_sensor_detail_flammable_gas.png
+│   ├── 12_sensor_detail_carbon_monoxide.png
+│   ├── 13_sensor_detail_pressure.png
+│   ├── 14_sensor_detail_co2_level.png
+│   ├── 15_sensor_detail_altitude.png
+│   ├── 16_dashboard_yellow_alert.png
+│   ├── 17_alerts_panel_full.png
+│   ├── 18_critical_alert.png
+│   ├── 19_multiple_alerts.png
+│   ├── 20_report_generating.png
+│   ├── 21_report_ready.png
+│   ├── 22_report_preview.pdf (or .png)
+│   ├── 23_settings_main.png
+│   ├── 24_settings_manual_ip.png
+│   ├── 25_settings_notifications.png
+│   └── 26_settings_about.png
 └── README.md
 ```
 
@@ -434,6 +479,40 @@ docs/
 
 ---
 
+## Key Updates Reflected in Screenshots
+
+### ✅ Recent Fixes Implemented (Nov 3, 2025)
+- **Gemini AI Integration:** All sensor detail screens now show real AI analysis (not fallback messages)
+  - API configured with `models/gemini-2.5-flash`
+  - Environment variable `GEMINI_API_KEY` properly loaded from `.env`
+  
+- **CO₂ Calculation Fixed:** Air Quality/CO₂ cards display calculated values
+  - Formula: `CO₂ = 400 + (MQ135_drop × 1.2)`
+  - Example: MQ135 reading of 250 → 700 ppm CO₂
+  - No longer shows 0 in AI analysis
+  
+- **Light Thresholds Updated:** Light sensor now uses corrected inverted scale
+  - 0-250: Bright ☀️ (green)
+  - 251-650: Moderate 🌤️ (green)
+  - 651-950: Dim Indoor 🏠 (yellow)
+  - 951-1250: Dark Indoor 🌑 (yellow)
+  - \>1250: Dark Night 🌃 (red)
+  - Lower numbers = Brighter conditions
+  
+- **All 10 Cards Documented:** Complete coverage of dashboard sensors
+  - Temperature, Humidity, Soil Moisture, Light
+  - Air Quality (CO₂), Flammable Gas, Carbon Monoxide
+  - Pressure, CO₂ Level (duplicate), Altitude
+
+### 📸 Screenshot Requirements
+- Show **real sensor values** from Oracle APEX backend
+- Include **AI analysis text** generated by Gemini API
+- Display **correct status colors** based on updated thresholds
+- Capture **24-hour trend graphs** for each sensor
+- Ensure **10 cards visible** on main dashboard
+
+---
+
 ## Notes
 
 - All images should be **PNG format** for best quality and file size
@@ -441,8 +520,10 @@ docs/
 - **Dark mode vs Light mode:** Capture in the theme you prefer (note in comments)
 - **Real data:** All screenshots show actual app with real sensor values from testing
 - **Consistency:** Use same device/resolution for all screenshots where possible
+- **AI Analysis:** Requires valid Gemini API key in `python_backend/.env`
+- **CO₂ Display:** Ensure MQ135 sensor has non-zero readings for realistic CO₂ calculations
 
 ---
 
 **Created:** November 2, 2025  
-**Updated:** For USER_MANUAL_QUICK.md v1.0
+**Updated:** November 3, 2025 - Reflected Gemini AI fix, CO₂ calculation fix, and light threshold updates
